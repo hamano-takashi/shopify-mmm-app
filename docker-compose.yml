@@ -1,0 +1,56 @@
+version: "3.8"
+
+services:
+  # Redis for BullMQ job queue
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # PostgreSQL for production database
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: shopify_mmm
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Python MMM Engine worker
+  mmm-engine:
+    build:
+      context: ./engine
+      dockerfile: Dockerfile
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    environment:
+      MMM_REDIS_URL: redis://redis:6379/0
+      MMM_DATABASE_URL: postgresql://postgres:password@postgres:5432/shopify_mmm
+      MMM_CHAINS: 4
+      MMM_TUNE: 1000
+      MMM_DRAWS: 500
+      MMM_MAX_CONCURRENT: 2
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+  postgres_data:

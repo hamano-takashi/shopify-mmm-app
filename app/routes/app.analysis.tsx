@@ -41,22 +41,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return { success: false, message: "データが登録されていません。先にデータ準備を行ってください。" };
     }
 
-    const analysis = await db.analysis.create({
-      data: {
-        shopId: shop.id,
-        status: "PENDING",
-        config: JSON.stringify({
-          dep_var: "net_sales",
-          date_range: "180d",
-          channels: [],
-        }),
-      },
+    // Dispatch analysis job via BullMQ
+    const { startAnalysis } = await import("../services/analysis-runner.server");
+    const result = await startAnalysis(shop.id, {
+      dep_var: "net_sales",
+      date_range: "180d",
     });
 
     return {
-      success: true,
-      message: `分析 #${analysis.id.slice(0, 8)} を作成しました`,
-      analysisId: analysis.id,
+      success: result.success,
+      message: result.message,
+      analysisId: result.analysisId,
     };
   }
 
