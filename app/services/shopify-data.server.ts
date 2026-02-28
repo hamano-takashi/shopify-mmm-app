@@ -5,195 +5,120 @@ interface AdminGraphQL {
   graphql: (query: string, options?: { variables?: Record<string, unknown> }) => Promise<Response>;
 }
 
-// ShopifyQL queries for data extraction
-const SALES_QUERY = `
-  FROM sales
-  SHOW net_sales, orders, new_customers, returning_customers, discounts
-  GROUP BY day
-  SINCE -180d
-  ORDER BY day ASC
-`;
-
-const SESSIONS_QUERY = `
-  FROM sessions
-  SHOW sessions, pageviews, online_store_visitors, add_to_carts
-  GROUP BY day
-  SINCE -180d
-  ORDER BY day ASC
-`;
-
-// GraphQL mutation to execute ShopifyQL
-const SHOPIFYQL_MUTATION = `#graphql
-  mutation ShopifyQLQuery($query: String!) {
-    shopifyqlQuery(query: $query) {
-      __typename
-      ... on TableResponse {
-        tableData {
-          rowData
-          columns {
-            name
-            dataType
+// GraphQL query to fetch orders (uses read_orders scope only)
+const ORDERS_QUERY = `#graphql
+  query FetchOrders($query: String!, $cursor: String) {
+    orders(first: 250, query: $query, after: $cursor, sortKey: CREATED_AT) {
+      edges {
+        node {
+          id
+          createdAt
+          totalPriceSet {
+            shopMoney {
+              amount
+            }
+          }
+          totalDiscountsSet {
+            shopMoney {
+              amount
+            }
+          }
+          subtotalPriceSet {
+            shopMoney {
+              amount
+            }
           }
         }
       }
-      ... on PollResponse {
-        partialDataId
-      }
-      ... on ParseError {
-        code
-        message
-        range {
-          start { line character }
-          end { line character }
-        }
+      pageInfo {
+        hasNextPage
+        endCursor
       }
     }
   }
 `;
 
-// GraphQL query for polling partial results
-const POLL_QUERY = `#graphql
-  query PollShopifyQL($partialDataId: String!) {
-    shopifyqlQuery(partialDataId: $partialDataId) {
-      __typename
-      ... on TableResponse {
-        tableData {
-          rowData
-          columns {
-            name
-            dataType
-          }
-        }
-      }
-      ... on PollResponse {
-        partialDataId
-      }
-    }
-  }
-`;
-
-interface ShopifyQLColumn {
-  name: string;
-  dataType: string;
-}
-
-interface ShopifyQLTableData {
-  rowData: string[][];
-  columns: ShopifyQLColumn[];
-}
-
-interface ShopifyQLResult {
-  tableData: ShopifyQLTableData;
+interface OrderNode {
+  id: string;
+  createdAt: string;
+  totalPriceSet: { shopMoney: { amount: string } };
+  totalDiscountsSet: { shopMoney: { amount: string } };
+  subtotalPriceSet: { shopMoney: { amount: string } };
 }
 
 /**
- * Execute a ShopifyQL query with polling support for large datasets.
+ * Fetch all orders for the last 180 days using GraphQL Admin API.
+ * Only requires read_orders scope.
  */
-export async function fetchShopifyQLData(
-  admin: AdminGraphQL,
-  query: string,
-  maxRetries = 10
-): Promise<ShopifyQLResult | null> {
-  const response = await admin.graphql(SHOPIFYQL_MUTATION, {
-    variables: { query },
-  });
+async function fetchAllOrders(admin: AdminGraphQL): Promise<OrderNode[]> {
+  const sinceDate = new Date();
+  sinceDate.setDate(sinceDate.getDate() - 180);
+  const sinceDateStr = sinceDate.toISOString().split("T")[0];
 
-  const { data } = await response.json();
-  const result = data?.shopifyqlQuery;
+  const allOrders: OrderNode[] = [];
+  let cursor: string | null = null;
+  let hasNextPage = true;
 
-  if (!result) {
-    console.error("ShopifyQL query returned no result");
-    return null;
-  }
+  while (hasNextPage) {
+    const response = await admin.graphql(ORDERS_QUERY, {
+      variables: {
+        query: `created_at:>=${sinceDateStr}`,
+        cursor,
+      },
+    });
 
-  if (result.__typename === "ParseError") {
-    console.error(`ShopifyQL parse error: ${result.message} (${result.code})`);
-    return null;
-  }
+    const { data } = await response.json();
+    const orders = data?.orders;
 
-  if (result.__typename === "TableResponse") {
-    return { tableData: result.tableData };
-  }
+    if (!orders) break;
 
-  // PollResponse: need to poll for results
-  if (result.__typename === "PollResponse") {
-    let partialDataId = result.partialDataId;
-    let retries = 0;
-
-    while (retries < maxRetries) {
-      // Exponential backoff: 1s, 2s, 4s, 8s...
-      const delay = Math.min(1000 * Math.pow(2, retries), 30000);
-      await new Promise((resolve) => setTimeout(resolve, delay));
-
-      const pollResponse = await admin.graphql(POLL_QUERY, {
-        variables: { partialDataId },
-      });
-
-      const pollData = await pollResponse.json();
-      const pollResult = pollData?.data?.shopifyqlQuery;
-
-      if (pollResult?.__typename === "TableResponse") {
-        return { tableData: pollResult.tableData };
-      }
-
-      if (pollResult?.__typename === "PollResponse") {
-        partialDataId = pollResult.partialDataId;
-      }
-
-      retries++;
+    for (const edge of orders.edges) {
+      allOrders.push(edge.node);
     }
 
-    console.error("ShopifyQL polling timed out");
-    return null;
+    hasNextPage = orders.pageInfo.hasNextPage;
+    cursor = orders.pageInfo.endCursor;
   }
 
-  return null;
+  return allOrders;
 }
 
 /**
- * Parse ShopifyQL table data into daily data points.
+ * Aggregate orders into daily data points.
  */
-function parseTableData(
-  tableData: ShopifyQLTableData
+function aggregateOrdersByDay(
+  orders: OrderNode[]
 ): Array<{ date: Date; variable: string; value: number }> {
-  const { columns, rowData } = tableData;
+  const dailyMap = new Map<string, { net_sales: number; orders: number; discounts: number }>();
+
+  for (const order of orders) {
+    const dateStr = order.createdAt.split("T")[0];
+
+    if (!dailyMap.has(dateStr)) {
+      dailyMap.set(dateStr, { net_sales: 0, orders: 0, discounts: 0 });
+    }
+
+    const day = dailyMap.get(dateStr)!;
+    day.net_sales += parseFloat(order.subtotalPriceSet.shopMoney.amount);
+    day.orders += 1;
+    day.discounts += parseFloat(order.totalDiscountsSet.shopMoney.amount);
+  }
+
   const dataPoints: Array<{ date: Date; variable: string; value: number }> = [];
 
-  // Find the date column index
-  const dateColIndex = columns.findIndex(
-    (col) => col.name === "day" || col.dataType === "date"
-  );
-
-  if (dateColIndex === -1) {
-    console.error("No date column found in ShopifyQL response");
-    return [];
-  }
-
-  for (const row of rowData) {
-    const dateStr = row[dateColIndex];
-    const date = new Date(dateStr);
-
-    if (isNaN(date.getTime())) continue;
-
-    for (let i = 0; i < columns.length; i++) {
-      if (i === dateColIndex) continue;
-
-      const colName = columns[i].name;
-      const rawValue = row[i];
-      const value = parseFloat(rawValue);
-
-      if (!isNaN(value)) {
-        dataPoints.push({ date, variable: colName, value });
-      }
-    }
+  for (const [dateStr, values] of dailyMap) {
+    const date = new Date(dateStr + "T00:00:00Z");
+    dataPoints.push({ date, variable: "net_sales", value: values.net_sales });
+    dataPoints.push({ date, variable: "orders", value: values.orders });
+    dataPoints.push({ date, variable: "discounts", value: values.discounts });
   }
 
   return dataPoints;
 }
 
 /**
- * Sync Shopify sales and session data for a shop.
- * Fetches via ShopifyQL and upserts into DailyDataPoint table.
+ * Sync Shopify order data for a shop.
+ * Uses Orders GraphQL API (read_orders scope only, no ShopifyQL needed).
  */
 export async function syncShopifyData(
   admin: AdminGraphQL,
@@ -222,54 +147,28 @@ export async function syncShopifyData(
   let totalCount = 0;
 
   try {
-    // Fetch sales data
-    const salesResult = await fetchShopifyQLData(admin, SALES_QUERY);
-    if (salesResult) {
-      const salesPoints = parseTableData(salesResult.tableData);
-      for (const point of salesPoints) {
-        await db.dailyDataPoint.upsert({
-          where: {
-            dataSourceId_date_variable: {
-              dataSourceId: dataSource.id,
-              date: point.date,
-              variable: point.variable,
-            },
-          },
-          update: { value: point.value },
-          create: {
-            dataSourceId: dataSource.id,
-            date: point.date,
-            variable: point.variable,
-            value: point.value,
-          },
-        });
-        totalCount++;
-      }
-    }
+    // Fetch orders and aggregate by day
+    const orders = await fetchAllOrders(admin);
+    const dataPoints = aggregateOrdersByDay(orders);
 
-    // Fetch sessions data
-    const sessionsResult = await fetchShopifyQLData(admin, SESSIONS_QUERY);
-    if (sessionsResult) {
-      const sessionPoints = parseTableData(sessionsResult.tableData);
-      for (const point of sessionPoints) {
-        await db.dailyDataPoint.upsert({
-          where: {
-            dataSourceId_date_variable: {
-              dataSourceId: dataSource.id,
-              date: point.date,
-              variable: point.variable,
-            },
-          },
-          update: { value: point.value },
-          create: {
+    for (const point of dataPoints) {
+      await db.dailyDataPoint.upsert({
+        where: {
+          dataSourceId_date_variable: {
             dataSourceId: dataSource.id,
             date: point.date,
             variable: point.variable,
-            value: point.value,
           },
-        });
-        totalCount++;
-      }
+        },
+        update: { value: point.value },
+        create: {
+          dataSourceId: dataSource.id,
+          date: point.date,
+          variable: point.variable,
+          value: point.value,
+        },
+      });
+      totalCount++;
     }
 
     // Update data source status
@@ -283,7 +182,7 @@ export async function syncShopifyData(
 
     return {
       success: true,
-      message: `${totalCount}件のデータポイントを同期しました`,
+      message: `${totalCount}件のデータポイントを同期しました（${orders.length}件の注文から集計）`,
       count: totalCount,
     };
   } catch (error) {
@@ -300,6 +199,84 @@ export async function syncShopifyData(
       count: 0,
     };
   }
+}
+
+/**
+ * Process a single order from webhook payload.
+ * Updates (upserts) the daily aggregated data for that order's date.
+ */
+export async function processOrderWebhook(
+  shopDomain: string,
+  orderPayload: {
+    created_at: string;
+    subtotal_price: string;
+    total_discounts: string;
+  }
+): Promise<void> {
+  const shop = await db.shop.findUnique({ where: { shopDomain } });
+  if (!shop) {
+    console.log(`Webhook: shop not found for ${shopDomain}`);
+    return;
+  }
+
+  let dataSource = await db.dataSource.findFirst({
+    where: { shopId: shop.id, type: "SHOPIFY_AUTO" },
+  });
+
+  if (!dataSource) {
+    dataSource = await db.dataSource.create({
+      data: {
+        shopId: shop.id,
+        type: "SHOPIFY_AUTO",
+        status: "ACTIVE",
+        lastSync: new Date(),
+      },
+    });
+  }
+
+  const dateStr = orderPayload.created_at.split("T")[0];
+  const date = new Date(dateStr + "T00:00:00Z");
+  const netSales = parseFloat(orderPayload.subtotal_price) || 0;
+  const discounts = parseFloat(orderPayload.total_discounts) || 0;
+
+  // Upsert each metric: add to existing value for the day
+  for (const { variable, value } of [
+    { variable: "net_sales", value: netSales },
+    { variable: "orders", value: 1 },
+    { variable: "discounts", value: discounts },
+  ]) {
+    const existing = await db.dailyDataPoint.findUnique({
+      where: {
+        dataSourceId_date_variable: {
+          dataSourceId: dataSource.id,
+          date,
+          variable,
+        },
+      },
+    });
+
+    await db.dailyDataPoint.upsert({
+      where: {
+        dataSourceId_date_variable: {
+          dataSourceId: dataSource.id,
+          date,
+          variable,
+        },
+      },
+      update: { value: (existing?.value || 0) + value },
+      create: {
+        dataSourceId: dataSource.id,
+        date,
+        variable,
+        value,
+      },
+    });
+  }
+
+  await db.dataSource.update({
+    where: { id: dataSource.id },
+    data: { lastSync: new Date() },
+  });
 }
 
 /**

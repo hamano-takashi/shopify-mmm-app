@@ -3,10 +3,6 @@ import { useLoaderData } from "react-router";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
 import { useState } from "react";
-import { ContributionChart } from "../components/results/ContributionChart";
-import { SaturationCurve } from "../components/results/SaturationCurve";
-import { BudgetAllocation } from "../components/results/BudgetAllocation";
-import { ModelAccuracy } from "../components/results/ModelAccuracy";
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -34,15 +30,20 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   return { analysis, results, config };
 };
 
-type Tab = "contribution" | "saturation" | "budget" | "accuracy" | "download";
+type Tab = "contribution" | "saturation" | "budget" | "accuracy";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "contribution", label: "チャネル貢献度" },
-  { id: "saturation", label: "飽和曲線" },
-  { id: "budget", label: "予算配分" },
+  { id: "saturation", label: "飽和度・限界ROI" },
+  { id: "budget", label: "予算最適化" },
   { id: "accuracy", label: "モデル精度" },
-  { id: "download", label: "ダウンロード" },
 ];
+
+const COLORS = ["#5C6AC4", "#007ACE", "#00A0AC", "#108043", "#EEC200", "#DE3618"];
+
+function formatYen(n: number) {
+  return "¥" + n.toLocaleString("ja-JP");
+}
 
 export default function Results() {
   const { analysis, results, config } = useLoaderData<typeof loader>();
@@ -61,11 +62,6 @@ export default function Results() {
                 {analysis.status === "RUNNING" ? (
                   <>
                     <s-text variant="headingMd">分析実行中...</s-text>
-                    <s-box padding-block-start="200">
-                      <s-text variant="bodyMd" tone="subdued">
-                        分析が完了するまでお待ちください。通常5〜15分かかります。
-                      </s-text>
-                    </s-box>
                     <s-box padding-block-start="400">
                       <s-spinner size="large" />
                     </s-box>
@@ -75,19 +71,12 @@ export default function Results() {
                     <s-text variant="headingMd">分析に失敗しました</s-text>
                     <s-box padding-block-start="200">
                       <s-banner tone="critical">
-                        {analysis.errorMsg || "不明なエラーが発生しました"}
+                        {analysis.errorMsg || "不明なエラー"}
                       </s-banner>
                     </s-box>
                   </>
                 ) : (
-                  <>
-                    <s-text variant="headingMd">分析待機中</s-text>
-                    <s-box padding-block-start="200">
-                      <s-text variant="bodyMd" tone="subdued">
-                        分析がキューに入っています。まもなく開始されます。
-                      </s-text>
-                    </s-box>
-                  </>
+                  <s-text variant="headingMd">分析待機中</s-text>
                 )}
               </s-box>
             </s-card>
@@ -97,14 +86,69 @@ export default function Results() {
     );
   }
 
+  const { summary, channels, budgetOptimization } = results;
+
+  const handleDownload = () => {
+    fetch(`/api/results/${analysis.id}/download`)
+      .then((res) => res.blob())
+      .then((blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `mmm-report-${analysis.id.slice(0, 8)}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      })
+      .catch((err) => console.error("Download error:", err));
+  };
+
   return (
     <s-page
       title={`分析結果 #${analysis.id.slice(0, 8)}`}
-      subtitle={`実行日: ${new Date(analysis.createdAt).toLocaleString("ja-JP")}`}
+      subtitle={`${summary.dateRange.start} 〜 ${summary.dateRange.end}（${summary.dataPoints}日分）`}
       backAction={{ url: "/app/analysis" }}
     >
+      {/* Download Button */}
       <s-layout>
-        {/* Tab navigation */}
+        <s-layout-section fullWidth>
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "4px" }}>
+            <s-button onClick={handleDownload}>Excelレポートをダウンロード</s-button>
+          </div>
+        </s-layout-section>
+      </s-layout>
+
+      {/* Summary Cards */}
+      <s-layout>
+        <s-layout-section variant="oneThird">
+          <s-card>
+            <s-box padding="400">
+              <s-text variant="bodySm" tone="subdued">総売上</s-text>
+              <s-text variant="headingLg">{formatYen(summary.totalRevenue)}</s-text>
+            </s-box>
+          </s-card>
+        </s-layout-section>
+        <s-layout-section variant="oneThird">
+          <s-card>
+            <s-box padding="400">
+              <s-text variant="bodySm" tone="subdued">総広告費</s-text>
+              <s-text variant="headingLg">{formatYen(summary.totalSpend)}</s-text>
+            </s-box>
+          </s-card>
+        </s-layout-section>
+        <s-layout-section variant="oneThird">
+          <s-card>
+            <s-box padding="400">
+              <s-text variant="bodySm" tone="subdued">総合ROAS</s-text>
+              <s-text variant="headingLg">{summary.overallRoas}x</s-text>
+            </s-box>
+          </s-card>
+        </s-layout-section>
+      </s-layout>
+
+      {/* Tab Navigation */}
+      <s-layout>
         <s-layout-section fullWidth>
           <s-card>
             <s-box padding="200">
@@ -133,130 +177,221 @@ export default function Results() {
           </s-card>
         </s-layout-section>
 
-        {/* Tab content */}
+        {/* Tab Content */}
         <s-layout-section fullWidth>
           <s-card>
             <s-box padding="400">
-              {activeTab === "contribution" && results.contribution && (
+              {activeTab === "contribution" && (
                 <div>
                   <s-text variant="headingMd">チャネル貢献度</s-text>
                   <s-box padding-block-start="200">
-                    <s-text variant="bodyMd" tone="subdued">
-                      各マーケティングチャネルの売上への貢献度とROASを表示します。
+                    <s-text variant="bodySm" tone="subdued">
+                      ベース売上（広告以外）: {formatYen(summary.baseRevenue)}（{summary.basePct}%）
                     </s-text>
                   </s-box>
                   <s-box padding-block-start="400">
-                    <ContributionChart channels={results.contribution.channels} />
+                    {/* Bar visualization */}
+                    {channels.map((ch: any, i: number) => (
+                      <div key={ch.channel} style={{ marginBottom: "12px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                          <span style={{ fontWeight: 500 }}>{ch.label}</span>
+                          <span>{ch.contributionPct}% / ROAS {ch.roas}x</span>
+                        </div>
+                        <div style={{ background: "#f1f1f1", borderRadius: "4px", height: "24px", overflow: "hidden" }}>
+                          <div
+                            style={{
+                              width: `${Math.min(ch.contributionPct * 2, 100)}%`,
+                              height: "100%",
+                              backgroundColor: COLORS[i % COLORS.length],
+                              borderRadius: "4px",
+                              display: "flex",
+                              alignItems: "center",
+                              paddingLeft: "8px",
+                              color: "#fff",
+                              fontSize: "12px",
+                              fontWeight: 600,
+                            }}
+                          >
+                            {formatYen(ch.contribution)}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </s-box>
+
+                  {/* Detail Table */}
+                  <s-box padding-block-start="400">
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
+                      <thead>
+                        <tr style={{ borderBottom: "2px solid #e1e3e5" }}>
+                          <th style={{ textAlign: "left", padding: "8px" }}>チャネル</th>
+                          <th style={{ textAlign: "right", padding: "8px" }}>貢献売上</th>
+                          <th style={{ textAlign: "right", padding: "8px" }}>広告費</th>
+                          <th style={{ textAlign: "right", padding: "8px" }}>ROAS</th>
+                          <th style={{ textAlign: "right", padding: "8px" }}>CPA</th>
+                          <th style={{ textAlign: "right", padding: "8px" }}>貢献度</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {channels.map((ch: any, i: number) => (
+                          <tr key={ch.channel} style={{ borderBottom: "1px solid #e1e3e5" }}>
+                            <td style={{ padding: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
+                              <span style={{ display: "inline-block", width: "12px", height: "12px", borderRadius: "2px", backgroundColor: COLORS[i % COLORS.length] }} />
+                              {ch.label}
+                            </td>
+                            <td style={{ textAlign: "right", padding: "8px" }}>{formatYen(ch.contribution)}</td>
+                            <td style={{ textAlign: "right", padding: "8px" }}>{formatYen(ch.totalSpend)}</td>
+                            <td style={{ textAlign: "right", padding: "8px", fontWeight: 600, color: ch.roas >= 3 ? "#108043" : ch.roas >= 1 ? "#202223" : "#DE3618" }}>{ch.roas}x</td>
+                            <td style={{ textAlign: "right", padding: "8px" }}>{formatYen(ch.cpa)}</td>
+                            <td style={{ textAlign: "right", padding: "8px" }}>{ch.contributionPct}%</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </s-box>
                 </div>
               )}
 
-              {activeTab === "saturation" && results.saturation && (
+              {activeTab === "saturation" && (
                 <div>
-                  <s-text variant="headingMd">飽和曲線</s-text>
+                  <s-text variant="headingMd">飽和度・限界ROI</s-text>
                   <s-box padding-block-start="200">
-                    <s-text variant="bodyMd" tone="subdued">
-                      チャネルごとの投資効率の逓減を可視化します。
-                      曲線が平らになるほど、追加投資の効果が薄れています。
+                    <s-text variant="bodySm" tone="subdued">
+                      飽和度が高いチャネルは追加投資の効果が薄れています。限界ROIが高いチャネルへの増額を検討してください。
                     </s-text>
                   </s-box>
                   <s-box padding-block-start="400">
-                    <SaturationCurve saturation={results.saturation} />
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
+                      <thead>
+                        <tr style={{ borderBottom: "2px solid #e1e3e5" }}>
+                          <th style={{ textAlign: "left", padding: "8px" }}>チャネル</th>
+                          <th style={{ textAlign: "right", padding: "8px" }}>飽和度</th>
+                          <th style={{ textAlign: "center", padding: "8px" }}>飽和状況</th>
+                          <th style={{ textAlign: "right", padding: "8px" }}>限界ROI</th>
+                          <th style={{ textAlign: "right", padding: "8px" }}>現在ROAS</th>
+                          <th style={{ textAlign: "center", padding: "8px" }}>判定</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {channels.map((ch: any, i: number) => (
+                          <tr key={ch.channel} style={{ borderBottom: "1px solid #e1e3e5" }}>
+                            <td style={{ padding: "8px" }}>
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+                                <span style={{ display: "inline-block", width: "12px", height: "12px", borderRadius: "2px", backgroundColor: COLORS[i % COLORS.length] }} />
+                                {ch.label}
+                              </span>
+                            </td>
+                            <td style={{ textAlign: "right", padding: "8px" }}>{ch.saturationPct}%</td>
+                            <td style={{ textAlign: "center", padding: "8px" }}>
+                              <div style={{ background: "#f1f1f1", borderRadius: "4px", height: "16px", overflow: "hidden", width: "100px", display: "inline-block" }}>
+                                <div style={{
+                                  width: `${ch.saturationPct}%`,
+                                  height: "100%",
+                                  backgroundColor: ch.saturationPct > 80 ? "#DE3618" : ch.saturationPct > 60 ? "#EEC200" : "#108043",
+                                  borderRadius: "4px",
+                                }} />
+                              </div>
+                            </td>
+                            <td style={{ textAlign: "right", padding: "8px", fontWeight: 600 }}>{ch.marginalRoi}x</td>
+                            <td style={{ textAlign: "right", padding: "8px" }}>{ch.roas}x</td>
+                            <td style={{ textAlign: "center", padding: "8px" }}>
+                              {ch.saturationPct > 80 ? (
+                                <span style={{ color: "#DE3618", fontWeight: 600 }}>要減額</span>
+                              ) : ch.saturationPct > 60 ? (
+                                <span style={{ color: "#EEC200", fontWeight: 600 }}>維持</span>
+                              ) : (
+                                <span style={{ color: "#108043", fontWeight: 600 }}>増額余地</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </s-box>
                 </div>
               )}
 
-              {activeTab === "budget" && results.budget && (
+              {activeTab === "budget" && budgetOptimization && (
                 <div>
                   <s-text variant="headingMd">予算配分の最適化</s-text>
                   <s-box padding-block-start="200">
-                    <s-text variant="bodyMd" tone="subdued">
-                      現在の予算配分と、モデルが推奨する最適配分を比較します。
-                    </s-text>
+                    <s-banner tone="success">
+                      最適化により推定 +{budgetOptimization.expectedLift}% の売上リフトが見込めます（総予算は同額）
+                    </s-banner>
                   </s-box>
                   <s-box padding-block-start="400">
-                    <BudgetAllocation
-                      current={results.budget.current}
-                      optimal={results.budget.optimal}
-                    />
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
+                      <thead>
+                        <tr style={{ borderBottom: "2px solid #e1e3e5" }}>
+                          <th style={{ textAlign: "left", padding: "8px" }}>チャネル</th>
+                          <th style={{ textAlign: "right", padding: "8px" }}>現在予算</th>
+                          <th style={{ textAlign: "center", padding: "8px" }}>→</th>
+                          <th style={{ textAlign: "right", padding: "8px" }}>推奨予算</th>
+                          <th style={{ textAlign: "right", padding: "8px" }}>変動</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {channels.map((ch: any, i: number) => {
+                          const current = budgetOptimization.currentSpend[ch.channel] || 0;
+                          const optimal = budgetOptimization.optimizedSpend[ch.channel] || 0;
+                          const diff = optimal - current;
+                          const diffPct = current > 0 ? Math.round((diff / current) * 100) : 0;
+                          return (
+                            <tr key={ch.channel} style={{ borderBottom: "1px solid #e1e3e5" }}>
+                              <td style={{ padding: "8px" }}>
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+                                  <span style={{ display: "inline-block", width: "12px", height: "12px", borderRadius: "2px", backgroundColor: COLORS[i % COLORS.length] }} />
+                                  {ch.label}
+                                </span>
+                              </td>
+                              <td style={{ textAlign: "right", padding: "8px" }}>{formatYen(current)}</td>
+                              <td style={{ textAlign: "center", padding: "8px" }}>→</td>
+                              <td style={{ textAlign: "right", padding: "8px", fontWeight: 600 }}>{formatYen(optimal)}</td>
+                              <td style={{ textAlign: "right", padding: "8px", color: diff > 0 ? "#108043" : diff < 0 ? "#DE3618" : "#637381", fontWeight: 600 }}>
+                                {diff > 0 ? "+" : ""}{diffPct}%
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </s-box>
                 </div>
               )}
 
-              {activeTab === "accuracy" && results.accuracy && (
+              {activeTab === "accuracy" && (
                 <div>
                   <s-text variant="headingMd">モデル精度</s-text>
-                  <s-box padding-block-start="200">
-                    <s-text variant="bodyMd" tone="subdued">
-                      モデルの適合度指標を表示します。
-                    </s-text>
-                  </s-box>
                   <s-box padding-block-start="400">
-                    <ModelAccuracy
-                      r_squared={results.accuracy.r_squared}
-                      mape={results.accuracy.mape}
-                      actual_vs_predicted={results.accuracy.actual_vs_predicted}
-                    />
-                  </s-box>
-                </div>
-              )}
-
-              {activeTab === "download" && (
-                <div>
-                  <s-text variant="headingMd">レポートダウンロード</s-text>
-                  <s-box padding-block-start="200">
-                    <s-text variant="bodyMd" tone="subdued">
-                      分析結果をファイルとしてダウンロードできます。
-                    </s-text>
-                  </s-box>
-                  <s-box padding-block-start="400">
-                    <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-                      <a
-                        href={`/api/results/${analysis.id}/download?format=csv`}
-                        download
-                        style={{ textDecoration: "none" }}
-                      >
-                        <s-button>CSV ダウンロード</s-button>
-                      </a>
-                      <a
-                        href={`/api/results/${analysis.id}/download?format=json`}
-                        download
-                        style={{ textDecoration: "none" }}
-                      >
-                        <s-button>JSON ダウンロード</s-button>
-                      </a>
+                    <div style={{ display: "flex", gap: "24px", flexWrap: "wrap" }}>
+                      <div style={{ flex: 1, minWidth: "200px", padding: "16px", border: "1px solid #e1e3e5", borderRadius: "8px" }}>
+                        <div style={{ color: "#637381", fontSize: "12px", marginBottom: "4px" }}>R²（決定係数）</div>
+                        <div style={{ fontSize: "32px", fontWeight: 700, color: summary.r2 >= 0.8 ? "#108043" : "#EEC200" }}>
+                          {summary.r2}
+                        </div>
+                        <div style={{ fontSize: "12px", color: "#637381", marginTop: "4px" }}>
+                          {summary.r2 >= 0.9 ? "非常に良好" : summary.r2 >= 0.8 ? "良好" : "改善の余地あり"}
+                        </div>
+                      </div>
+                      <div style={{ flex: 1, minWidth: "200px", padding: "16px", border: "1px solid #e1e3e5", borderRadius: "8px" }}>
+                        <div style={{ color: "#637381", fontSize: "12px", marginBottom: "4px" }}>MAPE（平均絶対誤差率）</div>
+                        <div style={{ fontSize: "32px", fontWeight: 700, color: summary.mape <= 10 ? "#108043" : "#EEC200" }}>
+                          {summary.mape}%
+                        </div>
+                        <div style={{ fontSize: "12px", color: "#637381", marginTop: "4px" }}>
+                          {summary.mape <= 10 ? "高精度" : summary.mape <= 15 ? "良好" : "改善の余地あり"}
+                        </div>
+                      </div>
+                      <div style={{ flex: 1, minWidth: "200px", padding: "16px", border: "1px solid #e1e3e5", borderRadius: "8px" }}>
+                        <div style={{ color: "#637381", fontSize: "12px", marginBottom: "4px" }}>ベース売上比率</div>
+                        <div style={{ fontSize: "32px", fontWeight: 700 }}>
+                          {summary.basePct}%
+                        </div>
+                        <div style={{ fontSize: "12px", color: "#637381", marginTop: "4px" }}>
+                          広告以外の売上（ブランド力・自然検索等）
+                        </div>
+                      </div>
                     </div>
-                  </s-box>
-
-                  {/* Config summary */}
-                  <s-box padding-block-start="400">
-                    <s-text variant="headingSm">分析設定</s-text>
-                    <s-box padding-block-start="200">
-                      <table style={{ borderCollapse: "collapse" }}>
-                        <tbody>
-                          <tr>
-                            <td style={{ padding: "4px 16px 4px 0", color: "#637381" }}>目的変数</td>
-                            <td style={{ padding: "4px 0" }}>{config.dep_var || "net_sales"}</td>
-                          </tr>
-                          <tr>
-                            <td style={{ padding: "4px 16px 4px 0", color: "#637381" }}>データ期間</td>
-                            <td style={{ padding: "4px 0" }}>{config.date_range || "180d"}</td>
-                          </tr>
-                          <tr>
-                            <td style={{ padding: "4px 16px 4px 0", color: "#637381" }}>MCMCチェーン数</td>
-                            <td style={{ padding: "4px 0" }}>{config.chains || 4}</td>
-                          </tr>
-                          <tr>
-                            <td style={{ padding: "4px 16px 4px 0", color: "#637381" }}>Tuneサンプル数</td>
-                            <td style={{ padding: "4px 0" }}>{config.tune || 1000}</td>
-                          </tr>
-                          <tr>
-                            <td style={{ padding: "4px 16px 4px 0", color: "#637381" }}>Drawサンプル数</td>
-                            <td style={{ padding: "4px 0" }}>{config.draws || 500}</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </s-box>
                   </s-box>
                 </div>
               )}

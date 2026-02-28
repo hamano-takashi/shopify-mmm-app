@@ -1,5 +1,5 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { useLoaderData, useActionData, useNavigation } from "react-router";
+import { useLoaderData, useActionData, useNavigation, useNavigate } from "react-router";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
 import { ensureShop } from "../services/shop.server";
@@ -41,7 +41,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return { success: false, message: "データが登録されていません。先にデータ準備を行ってください。" };
     }
 
-    // Dispatch analysis job via BullMQ
+    // Run OLS regression analysis
     const { startAnalysis } = await import("../services/analysis-runner.server");
     const result = await startAnalysis(shop.id, {
       dep_var: "net_sales",
@@ -90,6 +90,7 @@ export default function Analysis() {
   const { dataSourceCount, analyses } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
+  const navigate = useNavigate();
   const isSubmitting = navigation.state === "submitting";
   const hasData = dataSourceCount > 0;
 
@@ -154,30 +155,46 @@ export default function Analysis() {
                     まだ分析が実行されていません。
                   </s-text>
                 ) : (
-                  <s-resource-list>
+                  <div>
                     {analyses.map((analysis) => (
-                      <s-resource-item
+                      <div
                         key={analysis.id}
-                        url={
-                          analysis.status === "COMPLETED"
-                            ? `/app/results/${analysis.id}`
-                            : undefined
-                        }
+                        onClick={() => {
+                          if (analysis.status === "COMPLETED") {
+                            navigate(`/app/results/${analysis.id}`);
+                          }
+                        }}
+                        style={{
+                          padding: "12px 0",
+                          borderBottom: "1px solid #e1e3e5",
+                          cursor: analysis.status === "COMPLETED" ? "pointer" : "default",
+                        }}
                       >
-                        <s-inline>
+                        <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
                           <s-text variant="bodyMd">
                             分析 #{analysis.id.slice(0, 8)}
                           </s-text>
                           <s-badge tone={getStatusBadgeTone(analysis.status)}>
                             {getStatusLabel(analysis.status)}
                           </s-badge>
-                        </s-inline>
+                          {analysis.status === "COMPLETED" && (
+                            <s-button
+                              variant="plain"
+                              onClick={(e: React.MouseEvent) => {
+                                e.stopPropagation();
+                                navigate(`/app/results/${analysis.id}`);
+                              }}
+                            >
+                              結果を見る →
+                            </s-button>
+                          )}
+                        </div>
                         <s-text variant="bodySm" tone="subdued">
                           {new Date(analysis.createdAt).toLocaleString("ja-JP")}
                         </s-text>
-                      </s-resource-item>
+                      </div>
                     ))}
-                  </s-resource-list>
+                  </div>
                 )}
               </s-box>
             </s-box>
