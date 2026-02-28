@@ -130,32 +130,62 @@ export default function DataPrep() {
           </s-card>
         </s-layout-section>
 
-        {/* Step 2: Excel Upload */}
+        {/* Step 2: Excel Template Download */}
         <s-layout-section>
           <s-card>
             <s-box padding="400">
-              <s-text variant="headingMd">Step 2: 外部データ（Excelアップロード）</s-text>
+              <s-text variant="headingMd">Step 2: テンプレートダウンロード</s-text>
               <s-box padding-block-start="200">
                 <s-text variant="bodyMd" tone="subdued">
-                  Google Ads、Meta Ads、LINE広告などの外部チャネルデータを
-                  Excelテンプレートに入力してアップロードしてください。
+                  Excelテンプレートをダウンロードし、Google Ads・Meta Ads・LINE広告等の
+                  外部チャネルデータを入力してください。
                 </s-text>
               </s-box>
               <s-box padding-block-start="400">
-                <s-button-group>
-                  <s-button>テンプレートをダウンロード</s-button>
-                  <s-button variant="primary">Excelをアップロード</s-button>
-                </s-button-group>
+                <a href="/api/template/download" download style={{ textDecoration: "none" }}>
+                  <s-button>テンプレートをダウンロード (.xlsx)</s-button>
+                </a>
               </s-box>
             </s-box>
           </s-card>
         </s-layout-section>
 
-        {/* Step 3: Channel Config */}
+        {/* Step 3: Excel Upload */}
         <s-layout-section>
           <s-card>
             <s-box padding="400">
-              <s-text variant="headingMd">Step 3: チャネル変数設定</s-text>
+              <s-text variant="headingMd">Step 3: 外部データアップロード</s-text>
+              <s-box padding-block-start="200">
+                <s-text variant="bodyMd" tone="subdued">
+                  記入済みのExcelファイルをアップロードしてください。
+                  自動でバリデーションを行い、データを統合します。
+                </s-text>
+              </s-box>
+              <s-box padding-block-start="400">
+                <form method="post" encType="multipart/form-data">
+                  <input type="hidden" name="intent" value="upload_excel" />
+                  <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
+                    <input
+                      type="file"
+                      name="file"
+                      accept=".xlsx,.xls"
+                      style={{ fontSize: "14px" }}
+                    />
+                    <s-button variant="primary" type="submit" disabled={isSubmitting}>
+                      {isSubmitting ? "アップロード中..." : "アップロード"}
+                    </s-button>
+                  </div>
+                </form>
+              </s-box>
+            </s-box>
+          </s-card>
+        </s-layout-section>
+
+        {/* Step 4: Channel Config */}
+        <s-layout-section>
+          <s-card>
+            <s-box padding="400">
+              <s-text variant="headingMd">Step 4: チャネル変数設定</s-text>
               <s-box padding-block-start="200">
                 <s-text variant="bodyMd" tone="subdued">
                   分析に含めるチャネルと変数を選択してください。
@@ -171,11 +201,11 @@ export default function DataPrep() {
           </s-card>
         </s-layout-section>
 
-        {/* Step 4: Data Preview */}
+        {/* Step 5: Data Preview */}
         <s-layout-section>
           <s-card>
             <s-box padding="400">
-              <s-text variant="headingMd">Step 4: データプレビュー</s-text>
+              <s-text variant="headingMd">Step 5: データプレビュー</s-text>
               <s-box padding-block-start="200">
                 {dataSources.length === 0 ? (
                   <s-text variant="bodyMd" tone="subdued">
