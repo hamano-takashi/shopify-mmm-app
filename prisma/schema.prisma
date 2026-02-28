@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:dev.sqlite"
+}
+
+// Shopify session storage (managed by @shopify/shopify-app-session-storage-prisma)
+model Session {
+  id                  String    @id
+  shop                String
+  state               String
+  isOnline            Boolean   @default(false)
+  scope               String?
+  expires             DateTime?
+  accessToken         String
+  userId              BigInt?
+  firstName           String?
+  lastName            String?
+  email               String?
+  accountOwner        Boolean   @default(false)
+  locale              String?
+  collaborator        Boolean?  @default(false)
+  emailVerified       Boolean?  @default(false)
+  refreshToken        String?
+  refreshTokenExpires DateTime?
+}
+
+// --- MMM App Models ---
+
+model Shop {
+  id          String       @id @default(cuid())
+  shopDomain  String       @unique
+  plan        String       @default("TRIAL")
+  trialEndsAt DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  analyses    Analysis[]
+  dataSources DataSource[]
+}
+
+model DataSource {
+  id        String   @id @default(cuid())
+  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopId    String
+  type      String   // SHOPIFY_AUTO, EXCEL_UPLOAD, API_GOOGLE, API_META
+  status    String   @default("PENDING")
+  lastSync  DateTime?
+  metadata  String?  // JSON string for SQLite compatibility
+  createdAt DateTime @default(now())
+
+  dataPoints DailyDataPoint[]
+}
+
+model DailyDataPoint {
+  id           String     @id @default(cuid())
+  dataSource   DataSource @relation(fields: [dataSourceId], references: [id], onDelete: Cascade)
+  dataSourceId String
+  date         DateTime
+  variable     String
+  value        Float
+  createdAt    DateTime   @default(now())
+
+  @@unique([dataSourceId, date, variable])
+  @@index([dataSourceId, date])
+}
+
+model Analysis {
+  id          String   @id @default(cuid())
+  shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopId      String
+  status      String   @default("PENDING") // PENDING, RUNNING, COMPLETED, FAILED
+  config      String   // JSON string
+  startedAt   DateTime?
+  completedAt DateTime?
+  results     String?  // JSON string
+  errorMsg    String?
+  createdAt   DateTime @default(now())
+
+  @@index([shopId, createdAt])
+}

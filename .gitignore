@@ -38,6 +38,24 @@ desktop.ini
 
 # Shopify
 .shopify/
+.shopify.lock
+
+# React Router
+.react-router/
+/.cache
+
+# Prisma SQLite (dev only)
+/prisma/dev.sqlite
+/prisma/dev.sqlite-journal
+database.sqlite
+
+# Lock files (use npm ci)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Extensions
+/extensions/*/dist
 
 # Logs
 *.log
