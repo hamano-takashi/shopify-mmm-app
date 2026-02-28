@@ -109,15 +109,16 @@ class MMMRunner:
         # Build model
         self.model = self._build_model(df, channels, control_vars)
 
-        # Fit model
+        # Fit model — X must include date column for PyMC-Marketing
         logger.info(
             "Fitting model: chains=%d, tune=%d, draws=%d",
             self.config.chains,
             self.config.tune,
             self.config.draws,
         )
+        x_cols = [self.config.date_col] + channels + control_vars
         self.trace = self.model.fit(
-            X=df[channels + control_vars],
+            X=df[x_cols],
             y=df[self.config.dep_var].values,
             chains=self.config.chains,
             tune=self.config.tune,
