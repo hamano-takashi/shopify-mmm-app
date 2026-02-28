@@ -2,24 +2,26 @@ import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useLoaderData, useActionData, useNavigation } from "react-router";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
+import { ensureShop } from "../services/shop.server";
+import { exportMergedDataAsCSV } from "../services/data-merger.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
-  const shop = session.shop;
+  const shop = await ensureShop(session.shop);
 
   // Check if shop has data
   const dataSourceCount = await db.dataSource.count({
-    where: { shop: { shopDomain: shop } },
+    where: { shopId: shop.id },
   });
 
   // Get running/recent analyses
   const analyses = await db.analysis.findMany({
-    where: { shop: { shopDomain: shop } },
+    where: { shopId: shop.id },
     orderBy: { createdAt: "desc" },
     take: 10,
   });
 
-  return { shop, dataSourceCount, analyses };
+  return { shopDomain: session.shop, dataSourceCount, analyses };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -28,13 +30,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const intent = formData.get("intent") as string;
 
   if (intent === "start_analysis") {
-    // TODO: Phase 4 - BullMQ job dispatch
-    const shop = await db.shop.findUnique({
-      where: { shopDomain: session.shop },
+    const shop = await ensureShop(session.shop);
+
+    // Verify data exists
+    const dataCount = await db.dataSource.count({
+      where: { shopId: shop.id },
     });
 
-    if (!shop) {
-      return { success: false, message: "ショップが見つかりません" };
+    if (dataCount === 0) {
+      return { success: false, message: "データが登録されていません。先にデータ準備を行ってください。" };
     }
 
     const analysis = await db.analysis.create({

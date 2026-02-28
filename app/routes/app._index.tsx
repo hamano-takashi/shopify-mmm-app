@@ -2,28 +2,32 @@ import type { LoaderFunctionArgs } from "react-router";
 import { useLoaderData } from "react-router";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
+import { ensureShop } from "../services/shop.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
-  const shop = session.shop;
+  const shopDomain = session.shop;
+
+  // Ensure shop record exists on every load
+  const shop = await ensureShop(shopDomain);
 
   // Get recent analyses
   const analyses = await db.analysis.findMany({
-    where: { shop: { shopDomain: shop } },
+    where: { shopId: shop.id },
     orderBy: { createdAt: "desc" },
     take: 5,
   });
 
   // Get data source count
   const dataSourceCount = await db.dataSource.count({
-    where: { shop: { shopDomain: shop } },
+    where: { shopId: shop.id },
   });
 
-  return { shop, analyses, dataSourceCount };
+  return { shopDomain, analyses, dataSourceCount };
 };
 
 export default function Dashboard() {
-  const { shop, analyses, dataSourceCount } = useLoaderData<typeof loader>();
+  const { shopDomain, analyses, dataSourceCount } = useLoaderData<typeof loader>();
 
   return (
     <s-page title="ダッシュボード">

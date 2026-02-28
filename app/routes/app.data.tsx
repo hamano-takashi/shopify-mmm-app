@@ -2,32 +2,85 @@ import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useLoaderData, useActionData, useNavigation } from "react-router";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
+import { ensureShop } from "../services/shop.server";
+import { syncShopifyData, getShopifyDataSummary } from "../services/shopify-data.server";
+import { generateExcelTemplate } from "../services/excel-template.server";
+import { parseExcelUpload } from "../services/excel-parser.server";
+import { saveExcelData } from "../services/data-merger.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
-  const shop = session.shop;
+  const { session, admin } = await authenticate.admin(request);
+  const shopDomain = session.shop;
+
+  // Ensure shop record exists
+  const shop = await ensureShop(shopDomain);
 
   const dataSources = await db.dataSource.findMany({
-    where: { shop: { shopDomain: shop } },
+    where: { shopId: shop.id },
     orderBy: { createdAt: "desc" },
   });
 
-  return { shop, dataSources };
+  // Get Shopify data summary
+  const shopifySummary = await getShopifyDataSummary(shop.id);
+
+  return { shopDomain, shop, dataSources, shopifySummary };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
+  const shopDomain = session.shop;
+  const shop = await ensureShop(shopDomain);
+
   const formData = await request.formData();
   const intent = formData.get("intent") as string;
 
   if (intent === "sync_shopify") {
-    // TODO: Phase 2 - ShopifyQL data sync
-    return { success: true, message: "Shopifyデータの同期を開始しました" };
+    const result = await syncShopifyData(admin, shop.id);
+    return { success: result.success, message: result.message };
+  }
+
+  if (intent === "download_template") {
+    const buffer = await generateExcelTemplate({ shopId: shop.id });
+    return new Response(new Uint8Array(buffer), {
+      headers: {
+        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "Content-Disposition": "attachment; filename=mmm-template.xlsx",
+      },
+    });
   }
 
   if (intent === "upload_excel") {
-    // TODO: Phase 3 - Excel upload & validation
-    return { success: true, message: "Excelファイルを処理中です" };
+    const file = formData.get("file") as File | null;
+    if (!file) {
+      return { success: false, message: "ファイルが選択されていません" };
+    }
+
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // Parse and validate
+    const parseResult = await parseExcelUpload(buffer);
+
+    if (!parseResult.success) {
+      return {
+        success: false,
+        message: `バリデーションエラー: ${parseResult.errors.map((e) => e.message).join(", ")}`,
+        validation: parseResult,
+      };
+    }
+
+    // Save to database
+    const saveResult = await saveExcelData(shop.id, parseResult.data);
+
+    const warningMsg = parseResult.warnings.length > 0
+      ? ` (警告: ${parseResult.warnings.map((w) => w.message).join(", ")})`
+      : "";
+
+    return {
+      success: true,
+      message: `${saveResult.count}件のデータを保存しました${warningMsg}`,
+      validation: parseResult,
+    };
   }
 
   return { success: false, message: "不明なアクションです" };
