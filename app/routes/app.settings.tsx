@@ -295,6 +295,36 @@ export default function Settings() {
           </s-card>
         </s-layout-section>
 
+        {/* Support & Legal */}
+        <s-layout-section>
+          <s-card>
+            <s-box padding="400">
+              <s-text variant="headingMd">Support & Legal</s-text>
+              <s-box padding-block-start="300">
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #e1e3e5" }}>
+                    <div>
+                      <s-text variant="bodyMd" fontWeight="semibold">Email Support</s-text>
+                      <s-box padding-block-start="100">
+                        <s-text variant="bodySm" tone="subdued">support@entech0410.com</s-text>
+                      </s-box>
+                    </div>
+                    <s-button size="slim" url="mailto:support@entech0410.com">Contact</s-button>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #e1e3e5" }}>
+                    <s-text variant="bodyMd">Privacy Policy</s-text>
+                    <s-button size="slim" variant="plain" onClick={() => navigate("/app/privacy")}>View</s-button>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0" }}>
+                    <s-text variant="bodyMd">Terms of Service</s-text>
+                    <s-button size="slim" variant="plain" onClick={() => navigate("/app/terms")}>View</s-button>
+                  </div>
+                </div>
+              </s-box>
+            </s-box>
+          </s-card>
+        </s-layout-section>
+
         {/* Danger Zone */}
         <s-layout-section>
           <s-card>

@@ -55,7 +55,23 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     if (intent === "upload_excel") {
       const file = formData.get("file") as File | null;
       if (!file) {
-        return { success: false, message: "ファイルが選択されていません" };
+        return { success: false, message: "No file selected" };
+      }
+
+      // File size validation (max 5MB)
+      const MAX_FILE_SIZE = 5 * 1024 * 1024;
+      if (file.size > MAX_FILE_SIZE) {
+        return { success: false, message: "File too large. Maximum size is 5MB." };
+      }
+
+      // MIME type validation
+      const allowedTypes = [
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
+        "application/vnd.ms-excel", // .xls
+      ];
+      const fileName = file.name.toLowerCase();
+      if (!allowedTypes.includes(file.type) && !fileName.endsWith(".xlsx") && !fileName.endsWith(".xls")) {
+        return { success: false, message: "Invalid file type. Please upload an Excel file (.xlsx or .xls)." };
       }
 
       const arrayBuffer = await file.arrayBuffer();
@@ -65,30 +81,30 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       if (!parseResult.success) {
         return {
           success: false,
-          message: `バリデーションエラー: ${parseResult.errors.map((e) => e.message).join(", ")}`,
+          message: `Validation error: ${parseResult.errors.map((e) => e.message).join(", ")}`,
         };
       }
 
       const saveResult = await saveExcelData(shop.id, parseResult.data);
       const warningMsg =
         parseResult.warnings.length > 0
-          ? ` (警告: ${parseResult.warnings.map((w) => w.message).join(", ")})`
+          ? ` (Warning: ${parseResult.warnings.map((w) => w.message).join(", ")})`
           : "";
 
       return {
         success: true,
-        message: `${saveResult.count}件のデータを保存しました${warningMsg}`,
+        message: `${saveResult.count} data points saved${warningMsg}`,
       };
     }
   } catch (error) {
     console.error("Action error:", error);
     return {
       success: false,
-      message: `エラー: ${error instanceof Error ? error.message : "不明なエラー"}`,
+      message: `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
     };
   }
 
-  return { success: false, message: "不明なアクションです" };
+  return { success: false, message: "Unknown action" };
 };
 
 function StepIndicator({ step, done, active }: { step: number; done: boolean; active: boolean }) {
@@ -135,8 +151,8 @@ export default function DataPrep() {
 
   return (
     <s-page
-      title="データ準備"
-      subtitle="Shopifyデータの自動取得と外部データのアップロード"
+      title="Data Setup"
+      subtitle="Sync Shopify data and upload external ad data"
     >
       {syncResult?.message && (
         <s-banner tone={syncResult.success ? "success" : "critical"}>
@@ -167,9 +183,9 @@ export default function DataPrep() {
                 <StepIndicator step={3} done={allReady} active={step2Done && !allReady} />
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", marginTop: "8px", fontSize: "12px", color: "#637381" }}>
-                <span>Shopify同期</span>
-                <span>広告データ</span>
-                <span>分析準備完了</span>
+                <span>Shopify Sync</span>
+                <span>Ad Data</span>
+                <span>Ready to Analyze</span>
               </div>
             </s-box>
           </s-card>
@@ -182,11 +198,11 @@ export default function DataPrep() {
               <div style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
                 <StepIndicator step={1} done={step1Done} active={!step1Done} />
                 <div style={{ flex: 1 }}>
-                  <s-text variant="headingMd">Shopifyデータ（自動取得）</s-text>
+                  <s-text variant="headingMd">Shopify Data (Auto Sync)</s-text>
                   <s-box padding-block-start="200">
                     <s-text variant="bodyMd" tone="subdued">
-                      Orders APIで売上・注文数・割引データを自動取得します。
-                      初回同期後はWebhookで新規注文が自動反映されます。
+                      Automatically fetch revenue, orders, and discount data via the Orders API.
+                      After the initial sync, new orders are reflected automatically via webhooks.
                     </s-text>
                   </s-box>
                   {shopifySummary?.hasData && (
@@ -194,13 +210,13 @@ export default function DataPrep() {
                       <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
                         <div style={{ padding: "8px 12px", background: "#F1F8F5", borderRadius: "6px", fontSize: "13px" }}>
                           <span style={{ color: "#108043", fontWeight: 600 }}>{shopifySummary.pointCount.toLocaleString()}</span>
-                          <span style={{ color: "#637381" }}> データポイント</span>
+                          <span style={{ color: "#637381" }}> data points</span>
                         </div>
                         {shopifySummary.lastSync && (
                           <div style={{ padding: "8px 12px", background: "#F1F8F5", borderRadius: "6px", fontSize: "13px" }}>
-                            <span style={{ color: "#637381" }}>最終同期: </span>
+                            <span style={{ color: "#637381" }}>Last sync: </span>
                             <span style={{ fontWeight: 500 }}>
-                              {new Date(shopifySummary.lastSync).toLocaleString("ja-JP")}
+                              {new Date(shopifySummary.lastSync).toLocaleString("en-US")}
                             </span>
                           </div>
                         )}
@@ -212,13 +228,13 @@ export default function DataPrep() {
                       <syncFetcher.Form method="post">
                         <input type="hidden" name="intent" value="sync_shopify" />
                         <s-button variant="primary" type="submit" disabled={isSyncing}>
-                          {isSyncing ? "同期中..." : step1Done ? "再同期" : "Shopifyデータを同期"}
+                          {isSyncing ? "Syncing..." : step1Done ? "Re-sync" : "Sync Shopify Data"}
                         </s-button>
                       </syncFetcher.Form>
                       <seedFetcher.Form method="post">
                         <input type="hidden" name="intent" value="seed_test_data" />
                         <s-button type="submit" disabled={isSeeding}>
-                          {isSeeding ? "作成中..." : "テストデータを生成"}
+                          {isSeeding ? "Generating..." : "Generate Test Data"}
                         </s-button>
                       </seedFetcher.Form>
                     </div>
@@ -236,10 +252,10 @@ export default function DataPrep() {
               <div style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
                 <StepIndicator step={2} done={step2Done} active={step1Done && !step2Done} />
                 <div style={{ flex: 1 }}>
-                  <s-text variant="headingMd">外部広告データ</s-text>
+                  <s-text variant="headingMd">External Ad Data</s-text>
                   <s-box padding-block-start="200">
                     <s-text variant="bodyMd" tone="subdued">
-                      Google Ads・Meta Ads・LINE広告等の広告費・インプレッション・クリックデータをアップロードします。
+                      Upload ad spend, impressions, and click data from Google Ads, Meta Ads, LINE Ads, etc.
                     </s-text>
                   </s-box>
 
@@ -247,7 +263,7 @@ export default function DataPrep() {
                     <s-box padding-block-start="200">
                       <div style={{ padding: "8px 12px", background: "#F1F8F5", borderRadius: "6px", fontSize: "13px", display: "inline-block" }}>
                         <span style={{ color: "#108043", fontWeight: 600 }}>{excelPointCount.toLocaleString()}</span>
-                        <span style={{ color: "#637381" }}> データポイント アップロード済み</span>
+                        <span style={{ color: "#637381" }}> data points uploaded</span>
                       </div>
                     </s-box>
                   )}
@@ -275,7 +291,7 @@ export default function DataPrep() {
                               .catch((err) => console.error("Download error:", err));
                           }}
                         >
-                          テンプレートをダウンロード
+                          Download Template
                         </s-button>
                       </div>
 
@@ -292,7 +308,7 @@ export default function DataPrep() {
                               style={{ fontSize: "14px" }}
                             />
                             <s-button variant="primary" size="slim" type="submit" disabled={isUploading}>
-                              {isUploading ? "アップロード中..." : "アップロード"}
+                              {isUploading ? "Uploading..." : "Upload"}
                             </s-button>
                           </div>
                         </uploadFetcher.Form>
@@ -312,27 +328,27 @@ export default function DataPrep() {
               {allReady ? (
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
                   <div>
-                    <s-text variant="headingMd">分析の準備ができました</s-text>
+                    <s-text variant="headingMd">Ready to Analyze</s-text>
                     <s-box padding-block-start="100">
                       <s-text variant="bodySm" tone="subdued">
-                        Shopifyデータ + 広告データが揃っています。分析を開始できます。
+                        Shopify data + ad data are ready. You can start the analysis.
                       </s-text>
                     </s-box>
                   </div>
                   <s-button variant="primary" onClick={() => navigate("/app/analysis")}>
-                    分析実行へ進む
+                    Go to Analysis
                   </s-button>
                 </div>
               ) : (
                 <div>
-                  <s-text variant="headingMd" tone="subdued">分析の準備中</s-text>
+                  <s-text variant="headingMd" tone="subdued">Preparing for Analysis</s-text>
                   <s-box padding-block-start="100">
                     <s-text variant="bodySm" tone="subdued">
                       {!step1Done && !step2Done
-                        ? "Step 1（Shopify同期）とStep 2（広告データ）を完了してください。"
+                        ? "Please complete Step 1 (Shopify Sync) and Step 2 (Ad Data)."
                         : !step1Done
-                          ? "Step 1（Shopify同期）を完了してください。"
-                          : "Step 2（広告データアップロード）を完了してください。"}
+                          ? "Please complete Step 1 (Shopify Sync)."
+                          : "Please complete Step 2 (Ad Data Upload)."}
                     </s-text>
                   </s-box>
                 </div>
