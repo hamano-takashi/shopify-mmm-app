@@ -1,7 +1,5 @@
 import db from "../db.server";
 
-const TRIAL_DAYS = 14;
-
 /**
  * Ensure a Shop record exists for the given domain.
  * Called on every authenticated request to handle first-time installs.
@@ -10,6 +8,7 @@ export async function ensureShop(shopDomain: string): Promise<{
   id: string;
   shopDomain: string;
   plan: string;
+  subscriptionId: string | null;
   trialEndsAt: Date | null;
 }> {
   const existing = await db.shop.findUnique({
@@ -20,19 +19,15 @@ export async function ensureShop(shopDomain: string): Promise<{
     return existing;
   }
 
-  // First install: create shop with trial
-  const trialEndsAt = new Date();
-  trialEndsAt.setDate(trialEndsAt.getDate() + TRIAL_DAYS);
-
+  // First install: create shop with Free plan
   const shop = await db.shop.create({
     data: {
       shopDomain,
-      plan: "TRIAL",
-      trialEndsAt,
+      plan: "FREE",
     },
   });
 
-  console.log(`New shop created: ${shopDomain} (trial until ${trialEndsAt.toISOString()})`);
+  console.log(`New shop created: ${shopDomain} (FREE plan)`);
 
   return shop;
 }

@@ -4,6 +4,7 @@ import { authenticate } from "../shopify.server";
 import db from "../db.server";
 import { ensureShop } from "../services/shop.server";
 import { exportMergedDataAsCSV } from "../services/data-merger.server";
+import { canRunAnalysis, getPlanFeatures, normalizePlan } from "../services/billing.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -21,7 +22,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     take: 10,
   });
 
-  return { shopDomain: session.shop, dataSourceCount, analyses };
+  // Check analysis quota
+  const quota = await canRunAnalysis(shop.id, shop.plan);
+
+  return {
+    shopDomain: session.shop,
+    dataSourceCount,
+    analyses,
+    plan: normalizePlan(shop.plan),
+    analysisQuota: quota,
+  };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -32,13 +42,19 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   if (intent === "start_analysis") {
     const shop = await ensureShop(session.shop);
 
+    // Check analysis quota
+    const quota = await canRunAnalysis(shop.id, shop.plan);
+    if (!quota.allowed) {
+      return { success: false, message: quota.reason || "Analysis limit reached." };
+    }
+
     // Verify data exists
     const dataCount = await db.dataSource.count({
       where: { shopId: shop.id },
     });
 
     if (dataCount === 0) {
-      return { success: false, message: "データが登録されていません。先にデータ準備を行ってください。" };
+      return { success: false, message: "No data found. Please set up your data first." };
     }
 
     // Run OLS regression analysis
@@ -55,7 +71,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     };
   }
 
-  return { success: false, message: "不明なアクションです" };
+  return { success: false, message: "Unknown action" };
 };
 
 function getStatusBadgeTone(status: string) {
@@ -74,30 +90,31 @@ function getStatusBadgeTone(status: string) {
 function getStatusLabel(status: string) {
   switch (status) {
     case "PENDING":
-      return "待機中";
+      return "Pending";
     case "RUNNING":
-      return "実行中";
+      return "Running";
     case "COMPLETED":
-      return "完了";
+      return "Completed";
     case "FAILED":
-      return "失敗";
+      return "Failed";
     default:
       return status;
   }
 }
 
 export default function Analysis() {
-  const { dataSourceCount, analyses } = useLoaderData<typeof loader>();
+  const { dataSourceCount, analyses, plan, analysisQuota } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const navigate = useNavigate();
   const isSubmitting = navigation.state === "submitting";
   const hasData = dataSourceCount > 0;
+  const isQuotaExceeded = !analysisQuota.allowed;
 
   return (
     <s-page
-      title="分析実行"
-      subtitle="Marketing Mix Modelingを実行して、チャネル貢献度を分析"
+      title="Run Analysis"
+      subtitle="Run Marketing Mix Modeling to analyze channel contributions"
     >
       {actionData?.message && (
         <s-banner
@@ -113,18 +130,36 @@ export default function Analysis() {
         <s-layout-section>
           <s-card>
             <s-box padding="400">
-              <s-text variant="headingMd">新しい分析を開始</s-text>
+              <s-text variant="headingMd">Start New Analysis</s-text>
               <s-box padding-block-start="200">
                 {!hasData ? (
                   <s-text variant="bodyMd" tone="subdued">
-                    分析を開始するには、まず「データ準備」ページでデータを登録してください。
+                    To start an analysis, please set up your data on the Data Setup page first.
                   </s-text>
+                ) : isQuotaExceeded ? (
+                  <>
+                    <s-banner tone="warning">
+                      {analysisQuota.reason}
+                    </s-banner>
+                    <s-box padding-block-start="300">
+                      <s-button variant="primary" onClick={() => navigate("/app/plans")}>
+                        Upgrade Plan
+                      </s-button>
+                    </s-box>
+                  </>
                 ) : (
                   <>
                     <s-text variant="bodyMd" tone="subdued">
-                      登録済みデータを使ってMMMを実行します。
-                      分析には5〜15分程度かかります。
+                      Run MMM using your registered data.
+                      Analysis typically takes 5-15 minutes.
                     </s-text>
+                    {plan === "FREE" && analysisQuota.limit > 0 && (
+                      <s-box padding-block-start="200">
+                        <s-text variant="bodySm" tone="subdued">
+                          Free plan: {analysisQuota.used}/{analysisQuota.limit} analyses used this month
+                        </s-text>
+                      </s-box>
+                    )}
                     <s-box padding-block-start="400">
                       <form method="post">
                         <input type="hidden" name="intent" value="start_analysis" />
@@ -133,7 +168,7 @@ export default function Analysis() {
                           type="submit"
                           disabled={isSubmitting}
                         >
-                          {isSubmitting ? "作成中..." : "分析を開始"}
+                          {isSubmitting ? "Starting..." : "Start Analysis"}
                         </s-button>
                       </form>
                     </s-box>
@@ -148,11 +183,11 @@ export default function Analysis() {
         <s-layout-section>
           <s-card>
             <s-box padding="400">
-              <s-text variant="headingMd">分析履歴</s-text>
+              <s-text variant="headingMd">Analysis History</s-text>
               <s-box padding-block-start="200">
                 {analyses.length === 0 ? (
                   <s-text variant="bodyMd" tone="subdued">
-                    まだ分析が実行されていません。
+                    No analyses have been run yet.
                   </s-text>
                 ) : (
                   <div>
@@ -172,7 +207,7 @@ export default function Analysis() {
                       >
                         <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
                           <s-text variant="bodyMd">
-                            分析 #{analysis.id.slice(0, 8)}
+                            Analysis #{analysis.id.slice(0, 8)}
                           </s-text>
                           <s-badge tone={getStatusBadgeTone(analysis.status)}>
                             {getStatusLabel(analysis.status)}
@@ -185,12 +220,12 @@ export default function Analysis() {
                                 navigate(`/app/results/${analysis.id}`);
                               }}
                             >
-                              結果を見る →
+                              View Results →
                             </s-button>
                           )}
                         </div>
                         <s-text variant="bodySm" tone="subdued">
-                          {new Date(analysis.createdAt).toLocaleString("ja-JP")}
+                          {new Date(analysis.createdAt).toLocaleString("en-US")}
                         </s-text>
                       </div>
                     ))}

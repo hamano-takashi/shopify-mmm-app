@@ -31,12 +31,13 @@ model Session {
 // --- MMM App Models ---
 
 model Shop {
-  id          String       @id @default(cuid())
-  shopDomain  String       @unique
-  plan        String       @default("TRIAL")
-  trialEndsAt DateTime?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id             String       @id @default(cuid())
+  shopDomain     String       @unique
+  plan           String       @default("FREE")
+  subscriptionId String?      // Shopify AppSubscription GID cache
+  trialEndsAt    DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   analyses    Analysis[]
   dataSources DataSource[]

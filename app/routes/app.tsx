@@ -17,10 +17,11 @@ export default function App() {
   return (
     <AppProvider embedded apiKey={apiKey}>
       <s-app-nav>
-        <a href="/app" rel="home">ダッシュボード</a>
-        <a href="/app/data">データ準備</a>
-        <a href="/app/analysis">分析実行</a>
-        <a href="/app/settings">設定</a>
+        <a href="/app" rel="home">Dashboard</a>
+        <a href="/app/data">Data Setup</a>
+        <a href="/app/analysis">Run Analysis</a>
+        <a href="/app/plans">Plans</a>
+        <a href="/app/settings">Settings</a>
       </s-app-nav>
       <Outlet />
     </AppProvider>

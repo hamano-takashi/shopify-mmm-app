@@ -20,6 +20,10 @@ api_version = "2026-04"
   topics = [ "app/scopes_update" ]
   uri = "/webhooks/app/scopes_update"
 
+  [[webhooks.subscriptions]]
+  topics = [ "app_subscriptions/update" ]
+  uri = "/webhooks/app/subscriptions-update"
+
   # orders/create webhook requires protected customer data approval
   # Enable after approving at: https://partners.shopify.com > App > API access > Protected customer data
   # [[webhooks.subscriptions]]

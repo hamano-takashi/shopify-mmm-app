@@ -1,8 +1,10 @@
 import type { LoaderFunctionArgs } from "react-router";
-import { useLoaderData } from "react-router";
+import { useLoaderData, useNavigate } from "react-router";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
 import { useState } from "react";
+import { ensureShop } from "../services/shop.server";
+import { getPlanFeatures, normalizePlan } from "../services/billing.server";
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -12,6 +14,8 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   if (!analysisId) {
     throw new Response("Analysis ID is required", { status: 400 });
   }
+
+  const shopRecord = await ensureShop(shop);
 
   const analysis = await db.analysis.findFirst({
     where: {
@@ -26,33 +30,36 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
   const results = analysis.results ? JSON.parse(analysis.results) : null;
   const config = JSON.parse(analysis.config);
+  const plan = normalizePlan(shopRecord.plan);
+  const features = getPlanFeatures(plan);
 
-  return { analysis, results, config };
+  return { analysis, results, config, plan, features };
 };
 
 type Tab = "contribution" | "saturation" | "budget" | "accuracy";
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: "contribution", label: "チャネル貢献度" },
-  { id: "saturation", label: "飽和度・限界ROI" },
-  { id: "budget", label: "予算最適化" },
-  { id: "accuracy", label: "モデル精度" },
+  { id: "contribution", label: "Channel Contribution" },
+  { id: "saturation", label: "Saturation & Marginal ROI" },
+  { id: "budget", label: "Budget Optimization" },
+  { id: "accuracy", label: "Model Accuracy" },
 ];
 
 const COLORS = ["#5C6AC4", "#007ACE", "#00A0AC", "#108043", "#EEC200", "#DE3618"];
 
-function formatYen(n: number) {
-  return "¥" + n.toLocaleString("ja-JP");
+function formatCurrency(n: number) {
+  return "$" + n.toLocaleString("en-US");
 }
 
 export default function Results() {
-  const { analysis, results, config } = useLoaderData<typeof loader>();
+  const { analysis, results, config, plan, features } = useLoaderData<typeof loader>();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>("contribution");
 
   if (analysis.status !== "COMPLETED" || !results) {
     return (
       <s-page
-        title={`分析 #${analysis.id.slice(0, 8)}`}
+        title={`Analysis #${analysis.id.slice(0, 8)}`}
         backAction={{ url: "/app/analysis" }}
       >
         <s-layout>
@@ -61,22 +68,22 @@ export default function Results() {
               <s-box padding="400">
                 {analysis.status === "RUNNING" ? (
                   <>
-                    <s-text variant="headingMd">分析実行中...</s-text>
+                    <s-text variant="headingMd">Analysis in progress...</s-text>
                     <s-box padding-block-start="400">
                       <s-spinner size="large" />
                     </s-box>
                   </>
                 ) : analysis.status === "FAILED" ? (
                   <>
-                    <s-text variant="headingMd">分析に失敗しました</s-text>
+                    <s-text variant="headingMd">Analysis failed</s-text>
                     <s-box padding-block-start="200">
                       <s-banner tone="critical">
-                        {analysis.errorMsg || "不明なエラー"}
+                        {analysis.errorMsg || "Unknown error"}
                       </s-banner>
                     </s-box>
                   </>
                 ) : (
-                  <s-text variant="headingMd">分析待機中</s-text>
+                  <s-text variant="headingMd">Analysis pending</s-text>
                 )}
               </s-box>
             </s-card>
@@ -106,15 +113,21 @@ export default function Results() {
 
   return (
     <s-page
-      title={`分析結果 #${analysis.id.slice(0, 8)}`}
-      subtitle={`${summary.dateRange.start} 〜 ${summary.dateRange.end}（${summary.dataPoints}日分）`}
+      title={`Analysis Results #${analysis.id.slice(0, 8)}`}
+      subtitle={`${summary.dateRange.start} - ${summary.dateRange.end} (${summary.dataPoints} days)`}
       backAction={{ url: "/app/analysis" }}
     >
       {/* Download Button */}
       <s-layout>
         <s-layout-section fullWidth>
-          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "4px" }}>
-            <s-button onClick={handleDownload}>Excelレポートをダウンロード</s-button>
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "4px", gap: "8px", alignItems: "center" }}>
+            {features.excelExport ? (
+              <s-button onClick={handleDownload}>Download Excel Report</s-button>
+            ) : (
+              <s-button disabled onClick={() => navigate("/app/plans")}>
+                Download Excel Report (Starter+)
+              </s-button>
+            )}
           </div>
         </s-layout-section>
       </s-layout>
@@ -124,23 +137,23 @@ export default function Results() {
         <s-layout-section variant="oneThird">
           <s-card>
             <s-box padding="400">
-              <s-text variant="bodySm" tone="subdued">総売上</s-text>
-              <s-text variant="headingLg">{formatYen(summary.totalRevenue)}</s-text>
+              <s-text variant="bodySm" tone="subdued">Total Revenue</s-text>
+              <s-text variant="headingLg">{formatCurrency(summary.totalRevenue)}</s-text>
             </s-box>
           </s-card>
         </s-layout-section>
         <s-layout-section variant="oneThird">
           <s-card>
             <s-box padding="400">
-              <s-text variant="bodySm" tone="subdued">総広告費</s-text>
-              <s-text variant="headingLg">{formatYen(summary.totalSpend)}</s-text>
+              <s-text variant="bodySm" tone="subdued">Total Ad Spend</s-text>
+              <s-text variant="headingLg">{formatCurrency(summary.totalSpend)}</s-text>
             </s-box>
           </s-card>
         </s-layout-section>
         <s-layout-section variant="oneThird">
           <s-card>
             <s-box padding="400">
-              <s-text variant="bodySm" tone="subdued">総合ROAS</s-text>
+              <s-text variant="bodySm" tone="subdued">Overall ROAS</s-text>
               <s-text variant="headingLg">{summary.overallRoas}x</s-text>
             </s-box>
           </s-card>
@@ -183,14 +196,13 @@ export default function Results() {
             <s-box padding="400">
               {activeTab === "contribution" && (
                 <div>
-                  <s-text variant="headingMd">チャネル貢献度</s-text>
+                  <s-text variant="headingMd">Channel Contribution</s-text>
                   <s-box padding-block-start="200">
                     <s-text variant="bodySm" tone="subdued">
-                      ベース売上（広告以外）: {formatYen(summary.baseRevenue)}（{summary.basePct}%）
+                      Base revenue (non-ad): {formatCurrency(summary.baseRevenue)} ({summary.basePct}%)
                     </s-text>
                   </s-box>
                   <s-box padding-block-start="400">
-                    {/* Bar visualization */}
                     {channels.map((ch: any, i: number) => (
                       <div key={ch.channel} style={{ marginBottom: "12px" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
@@ -212,7 +224,7 @@ export default function Results() {
                               fontWeight: 600,
                             }}
                           >
-                            {formatYen(ch.contribution)}
+                            {formatCurrency(ch.contribution)}
                           </div>
                         </div>
                       </div>
@@ -224,12 +236,12 @@ export default function Results() {
                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
                       <thead>
                         <tr style={{ borderBottom: "2px solid #e1e3e5" }}>
-                          <th style={{ textAlign: "left", padding: "8px" }}>チャネル</th>
-                          <th style={{ textAlign: "right", padding: "8px" }}>貢献売上</th>
-                          <th style={{ textAlign: "right", padding: "8px" }}>広告費</th>
+                          <th style={{ textAlign: "left", padding: "8px" }}>Channel</th>
+                          <th style={{ textAlign: "right", padding: "8px" }}>Revenue Contribution</th>
+                          <th style={{ textAlign: "right", padding: "8px" }}>Ad Spend</th>
                           <th style={{ textAlign: "right", padding: "8px" }}>ROAS</th>
                           <th style={{ textAlign: "right", padding: "8px" }}>CPA</th>
-                          <th style={{ textAlign: "right", padding: "8px" }}>貢献度</th>
+                          <th style={{ textAlign: "right", padding: "8px" }}>Share</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -239,10 +251,10 @@ export default function Results() {
                               <span style={{ display: "inline-block", width: "12px", height: "12px", borderRadius: "2px", backgroundColor: COLORS[i % COLORS.length] }} />
                               {ch.label}
                             </td>
-                            <td style={{ textAlign: "right", padding: "8px" }}>{formatYen(ch.contribution)}</td>
-                            <td style={{ textAlign: "right", padding: "8px" }}>{formatYen(ch.totalSpend)}</td>
+                            <td style={{ textAlign: "right", padding: "8px" }}>{formatCurrency(ch.contribution)}</td>
+                            <td style={{ textAlign: "right", padding: "8px" }}>{formatCurrency(ch.totalSpend)}</td>
                             <td style={{ textAlign: "right", padding: "8px", fontWeight: 600, color: ch.roas >= 3 ? "#108043" : ch.roas >= 1 ? "#202223" : "#DE3618" }}>{ch.roas}x</td>
-                            <td style={{ textAlign: "right", padding: "8px" }}>{formatYen(ch.cpa)}</td>
+                            <td style={{ textAlign: "right", padding: "8px" }}>{formatCurrency(ch.cpa)}</td>
                             <td style={{ textAlign: "right", padding: "8px" }}>{ch.contributionPct}%</td>
                           </tr>
                         ))}
@@ -252,24 +264,49 @@ export default function Results() {
                 </div>
               )}
 
-              {activeTab === "saturation" && (
+              {activeTab === "saturation" && !features.saturationAnalysis && (
                 <div>
-                  <s-text variant="headingMd">飽和度・限界ROI</s-text>
+                  <s-text variant="headingMd">Saturation & Marginal ROI</s-text>
+                  <s-box padding-block-start="400">
+                    <s-card>
+                      <s-box padding="600">
+                        <div style={{ textAlign: "center" }}>
+                          <s-text variant="headingMd">Pro Feature</s-text>
+                          <s-box padding-block-start="200">
+                            <s-text variant="bodyMd" tone="subdued">
+                              Upgrade to Pro to access saturation analysis and marginal ROI insights.
+                            </s-text>
+                          </s-box>
+                          <s-box padding-block-start="400">
+                            <s-button variant="primary" onClick={() => navigate("/app/plans")}>
+                              Upgrade to Pro
+                            </s-button>
+                          </s-box>
+                        </div>
+                      </s-box>
+                    </s-card>
+                  </s-box>
+                </div>
+              )}
+
+              {activeTab === "saturation" && features.saturationAnalysis && (
+                <div>
+                  <s-text variant="headingMd">Saturation & Marginal ROI</s-text>
                   <s-box padding-block-start="200">
                     <s-text variant="bodySm" tone="subdued">
-                      飽和度が高いチャネルは追加投資の効果が薄れています。限界ROIが高いチャネルへの増額を検討してください。
+                      Highly saturated channels have diminishing returns on additional investment. Consider increasing spend on channels with higher marginal ROI.
                     </s-text>
                   </s-box>
                   <s-box padding-block-start="400">
                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
                       <thead>
                         <tr style={{ borderBottom: "2px solid #e1e3e5" }}>
-                          <th style={{ textAlign: "left", padding: "8px" }}>チャネル</th>
-                          <th style={{ textAlign: "right", padding: "8px" }}>飽和度</th>
-                          <th style={{ textAlign: "center", padding: "8px" }}>飽和状況</th>
-                          <th style={{ textAlign: "right", padding: "8px" }}>限界ROI</th>
-                          <th style={{ textAlign: "right", padding: "8px" }}>現在ROAS</th>
-                          <th style={{ textAlign: "center", padding: "8px" }}>判定</th>
+                          <th style={{ textAlign: "left", padding: "8px" }}>Channel</th>
+                          <th style={{ textAlign: "right", padding: "8px" }}>Saturation</th>
+                          <th style={{ textAlign: "center", padding: "8px" }}>Level</th>
+                          <th style={{ textAlign: "right", padding: "8px" }}>Marginal ROI</th>
+                          <th style={{ textAlign: "right", padding: "8px" }}>Current ROAS</th>
+                          <th style={{ textAlign: "center", padding: "8px" }}>Action</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -296,11 +333,11 @@ export default function Results() {
                             <td style={{ textAlign: "right", padding: "8px" }}>{ch.roas}x</td>
                             <td style={{ textAlign: "center", padding: "8px" }}>
                               {ch.saturationPct > 80 ? (
-                                <span style={{ color: "#DE3618", fontWeight: 600 }}>要減額</span>
+                                <span style={{ color: "#DE3618", fontWeight: 600 }}>Reduce</span>
                               ) : ch.saturationPct > 60 ? (
-                                <span style={{ color: "#EEC200", fontWeight: 600 }}>維持</span>
+                                <span style={{ color: "#EEC200", fontWeight: 600 }}>Maintain</span>
                               ) : (
-                                <span style={{ color: "#108043", fontWeight: 600 }}>増額余地</span>
+                                <span style={{ color: "#108043", fontWeight: 600 }}>Increase</span>
                               )}
                             </td>
                           </tr>
@@ -311,23 +348,48 @@ export default function Results() {
                 </div>
               )}
 
-              {activeTab === "budget" && budgetOptimization && (
+              {activeTab === "budget" && !features.budgetOptimization && (
                 <div>
-                  <s-text variant="headingMd">予算配分の最適化</s-text>
+                  <s-text variant="headingMd">Budget Optimization</s-text>
+                  <s-box padding-block-start="400">
+                    <s-card>
+                      <s-box padding="600">
+                        <div style={{ textAlign: "center" }}>
+                          <s-text variant="headingMd">Pro Feature</s-text>
+                          <s-box padding-block-start="200">
+                            <s-text variant="bodyMd" tone="subdued">
+                              Upgrade to Pro to access AI-powered budget optimization recommendations.
+                            </s-text>
+                          </s-box>
+                          <s-box padding-block-start="400">
+                            <s-button variant="primary" onClick={() => navigate("/app/plans")}>
+                              Upgrade to Pro
+                            </s-button>
+                          </s-box>
+                        </div>
+                      </s-box>
+                    </s-card>
+                  </s-box>
+                </div>
+              )}
+
+              {activeTab === "budget" && features.budgetOptimization && budgetOptimization && (
+                <div>
+                  <s-text variant="headingMd">Budget Optimization</s-text>
                   <s-box padding-block-start="200">
                     <s-banner tone="success">
-                      最適化により推定 +{budgetOptimization.expectedLift}% の売上リフトが見込めます（総予算は同額）
+                      Optimization could deliver an estimated +{budgetOptimization.expectedLift}% revenue lift (same total budget)
                     </s-banner>
                   </s-box>
                   <s-box padding-block-start="400">
                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
                       <thead>
                         <tr style={{ borderBottom: "2px solid #e1e3e5" }}>
-                          <th style={{ textAlign: "left", padding: "8px" }}>チャネル</th>
-                          <th style={{ textAlign: "right", padding: "8px" }}>現在予算</th>
+                          <th style={{ textAlign: "left", padding: "8px" }}>Channel</th>
+                          <th style={{ textAlign: "right", padding: "8px" }}>Current Budget</th>
                           <th style={{ textAlign: "center", padding: "8px" }}>→</th>
-                          <th style={{ textAlign: "right", padding: "8px" }}>推奨予算</th>
-                          <th style={{ textAlign: "right", padding: "8px" }}>変動</th>
+                          <th style={{ textAlign: "right", padding: "8px" }}>Recommended</th>
+                          <th style={{ textAlign: "right", padding: "8px" }}>Change</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -344,9 +406,9 @@ export default function Results() {
                                   {ch.label}
                                 </span>
                               </td>
-                              <td style={{ textAlign: "right", padding: "8px" }}>{formatYen(current)}</td>
+                              <td style={{ textAlign: "right", padding: "8px" }}>{formatCurrency(current)}</td>
                               <td style={{ textAlign: "center", padding: "8px" }}>→</td>
-                              <td style={{ textAlign: "right", padding: "8px", fontWeight: 600 }}>{formatYen(optimal)}</td>
+                              <td style={{ textAlign: "right", padding: "8px", fontWeight: 600 }}>{formatCurrency(optimal)}</td>
                               <td style={{ textAlign: "right", padding: "8px", color: diff > 0 ? "#108043" : diff < 0 ? "#DE3618" : "#637381", fontWeight: 600 }}>
                                 {diff > 0 ? "+" : ""}{diffPct}%
                               </td>
@@ -361,34 +423,34 @@ export default function Results() {
 
               {activeTab === "accuracy" && (
                 <div>
-                  <s-text variant="headingMd">モデル精度</s-text>
+                  <s-text variant="headingMd">Model Accuracy</s-text>
                   <s-box padding-block-start="400">
                     <div style={{ display: "flex", gap: "24px", flexWrap: "wrap" }}>
                       <div style={{ flex: 1, minWidth: "200px", padding: "16px", border: "1px solid #e1e3e5", borderRadius: "8px" }}>
-                        <div style={{ color: "#637381", fontSize: "12px", marginBottom: "4px" }}>R²（決定係数）</div>
+                        <div style={{ color: "#637381", fontSize: "12px", marginBottom: "4px" }}>R² (Coefficient of Determination)</div>
                         <div style={{ fontSize: "32px", fontWeight: 700, color: summary.r2 >= 0.8 ? "#108043" : "#EEC200" }}>
                           {summary.r2}
                         </div>
                         <div style={{ fontSize: "12px", color: "#637381", marginTop: "4px" }}>
-                          {summary.r2 >= 0.9 ? "非常に良好" : summary.r2 >= 0.8 ? "良好" : "改善の余地あり"}
+                          {summary.r2 >= 0.9 ? "Excellent" : summary.r2 >= 0.8 ? "Good" : "Needs improvement"}
                         </div>
                       </div>
                       <div style={{ flex: 1, minWidth: "200px", padding: "16px", border: "1px solid #e1e3e5", borderRadius: "8px" }}>
-                        <div style={{ color: "#637381", fontSize: "12px", marginBottom: "4px" }}>MAPE（平均絶対誤差率）</div>
+                        <div style={{ color: "#637381", fontSize: "12px", marginBottom: "4px" }}>MAPE (Mean Absolute % Error)</div>
                         <div style={{ fontSize: "32px", fontWeight: 700, color: summary.mape <= 10 ? "#108043" : "#EEC200" }}>
                           {summary.mape}%
                         </div>
                         <div style={{ fontSize: "12px", color: "#637381", marginTop: "4px" }}>
-                          {summary.mape <= 10 ? "高精度" : summary.mape <= 15 ? "良好" : "改善の余地あり"}
+                          {summary.mape <= 10 ? "High accuracy" : summary.mape <= 15 ? "Good" : "Needs improvement"}
                         </div>
                       </div>
                       <div style={{ flex: 1, minWidth: "200px", padding: "16px", border: "1px solid #e1e3e5", borderRadius: "8px" }}>
-                        <div style={{ color: "#637381", fontSize: "12px", marginBottom: "4px" }}>ベース売上比率</div>
+                        <div style={{ color: "#637381", fontSize: "12px", marginBottom: "4px" }}>Base Revenue Ratio</div>
                         <div style={{ fontSize: "32px", fontWeight: 700 }}>
                           {summary.basePct}%
                         </div>
                         <div style={{ fontSize: "12px", color: "#637381", marginTop: "4px" }}>
-                          広告以外の売上（ブランド力・自然検索等）
+                          Revenue from non-ad sources (brand, organic, etc.)
                         </div>
                       </div>
                     </div>

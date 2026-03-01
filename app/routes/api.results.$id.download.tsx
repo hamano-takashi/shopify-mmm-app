@@ -2,6 +2,8 @@ import type { LoaderFunctionArgs } from "react-router";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
 import ExcelJS from "exceljs";
+import { ensureShop } from "../services/shop.server";
+import { getPlanFeatures, normalizePlan } from "../services/billing.server";
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -9,6 +11,13 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
   if (!analysisId) {
     throw new Response("Analysis ID is required", { status: 400 });
+  }
+
+  // Check plan allows export
+  const shop = await ensureShop(session.shop);
+  const features = getPlanFeatures(normalizePlan(shop.plan));
+  if (!features.excelExport) {
+    throw new Response("Excel export requires Starter plan or higher", { status: 403 });
   }
 
   const analysis = await db.analysis.findFirst({
@@ -28,25 +37,25 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
   const workbook = new ExcelJS.Workbook();
 
-  // --- Sheet 1: サマリー ---
-  const summarySheet = workbook.addWorksheet("サマリー");
+  // --- Sheet 1: Summary ---
+  const summarySheet = workbook.addWorksheet("Summary");
   const s = results.summary;
 
   summarySheet.columns = [
-    { header: "指標", key: "metric", width: 25 },
-    { header: "値", key: "value", width: 25 },
+    { header: "Metric", key: "metric", width: 25 },
+    { header: "Value", key: "value", width: 25 },
   ];
 
   const summaryRows = [
-    { metric: "分析期間", value: `${s.dateRange.start} 〜 ${s.dateRange.end}` },
-    { metric: "データポイント数", value: `${s.dataPoints}日` },
-    { metric: "総売上", value: s.totalRevenue },
-    { metric: "総広告費", value: s.totalSpend },
-    { metric: "総合ROAS", value: `${s.overallRoas}x` },
-    { metric: "ベース売上", value: s.baseRevenue },
-    { metric: "ベース売上比率", value: `${s.basePct}%` },
-    { metric: "R²（決定係数）", value: s.r2 },
-    { metric: "MAPE（平均絶対誤差率）", value: `${s.mape}%` },
+    { metric: "Analysis Period", value: `${s.dateRange.start} - ${s.dateRange.end}` },
+    { metric: "Data Points", value: `${s.dataPoints} days` },
+    { metric: "Total Revenue", value: s.totalRevenue },
+    { metric: "Total Ad Spend", value: s.totalSpend },
+    { metric: "Overall ROAS", value: `${s.overallRoas}x` },
+    { metric: "Base Revenue", value: s.baseRevenue },
+    { metric: "Base Revenue Ratio", value: `${s.basePct}%` },
+    { metric: "R² (Coefficient of Determination)", value: s.r2 },
+    { metric: "MAPE (Mean Absolute % Error)", value: `${s.mape}%` },
   ];
 
   summaryRows.forEach((row) => summarySheet.addRow(row));
@@ -60,17 +69,17 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   };
   summarySheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
 
-  // --- Sheet 2: チャネル詳細 ---
-  const channelSheet = workbook.addWorksheet("チャネル詳細");
+  // --- Sheet 2: Channel Details ---
+  const channelSheet = workbook.addWorksheet("Channel Details");
   channelSheet.columns = [
-    { header: "チャネル", key: "label", width: 18 },
-    { header: "貢献売上", key: "contribution", width: 16 },
-    { header: "貢献度(%)", key: "contributionPct", width: 12 },
-    { header: "広告費", key: "totalSpend", width: 16 },
+    { header: "Channel", key: "label", width: 18 },
+    { header: "Revenue Contribution", key: "contribution", width: 20 },
+    { header: "Share (%)", key: "contributionPct", width: 12 },
+    { header: "Ad Spend", key: "totalSpend", width: 16 },
     { header: "ROAS", key: "roas", width: 10 },
     { header: "CPA", key: "cpa", width: 12 },
-    { header: "飽和度(%)", key: "saturationPct", width: 12 },
-    { header: "限界ROI", key: "marginalRoi", width: 12 },
+    { header: "Saturation (%)", key: "saturationPct", width: 14 },
+    { header: "Marginal ROI", key: "marginalRoi", width: 14 },
   ];
 
   for (const ch of results.channels) {
@@ -99,14 +108,14 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   channelSheet.getColumn("totalSpend").numFmt = "#,##0";
   channelSheet.getColumn("cpa").numFmt = "#,##0";
 
-  // --- Sheet 3: 予算最適化 ---
-  const budgetSheet = workbook.addWorksheet("予算最適化");
+  // --- Sheet 3: Budget Optimization ---
+  const budgetSheet = workbook.addWorksheet("Budget Optimization");
   budgetSheet.columns = [
-    { header: "チャネル", key: "label", width: 18 },
-    { header: "現在予算", key: "current", width: 16 },
-    { header: "推奨予算", key: "optimized", width: 16 },
-    { header: "変動額", key: "diff", width: 14 },
-    { header: "変動率(%)", key: "diffPct", width: 12 },
+    { header: "Channel", key: "label", width: 18 },
+    { header: "Current Budget", key: "current", width: 16 },
+    { header: "Recommended Budget", key: "optimized", width: 20 },
+    { header: "Change Amount", key: "diff", width: 16 },
+    { header: "Change (%)", key: "diffPct", width: 12 },
   ];
 
   const bo = results.budgetOptimization;
@@ -128,7 +137,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const totalCurrent = Object.values(bo.currentSpend as Record<string, number>).reduce((a, b) => a + b, 0);
   const totalOptimized = Object.values(bo.optimizedSpend as Record<string, number>).reduce((a, b) => a + b, 0);
   const totalRow = budgetSheet.addRow({
-    label: "合計",
+    label: "Total",
     current: totalCurrent,
     optimized: totalOptimized,
     diff: totalOptimized - totalCurrent,
@@ -138,7 +147,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
   // Add expected lift
   budgetSheet.addRow({});
-  budgetSheet.addRow({ label: `推定売上リフト: +${bo.expectedLift}%` });
+  budgetSheet.addRow({ label: `Estimated Revenue Lift: +${bo.expectedLift}%` });
 
   budgetSheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
   budgetSheet.getRow(1).fill = {
