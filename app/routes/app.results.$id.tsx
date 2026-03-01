@@ -231,35 +231,50 @@ export default function Results() {
                     ))}
                   </s-box>
 
-                  {/* Detail Table */}
+                  {/* Detail Table — Starter+ only */}
                   <s-box padding-block-start="400">
-                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
-                      <thead>
-                        <tr style={{ borderBottom: "2px solid #e1e3e5" }}>
-                          <th style={{ textAlign: "left", padding: "8px" }}>Channel</th>
-                          <th style={{ textAlign: "right", padding: "8px" }}>Revenue Contribution</th>
-                          <th style={{ textAlign: "right", padding: "8px" }}>Ad Spend</th>
-                          <th style={{ textAlign: "right", padding: "8px" }}>ROAS</th>
-                          <th style={{ textAlign: "right", padding: "8px" }}>CPA</th>
-                          <th style={{ textAlign: "right", padding: "8px" }}>Share</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {channels.map((ch: any, i: number) => (
-                          <tr key={ch.channel} style={{ borderBottom: "1px solid #e1e3e5" }}>
-                            <td style={{ padding: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
-                              <span style={{ display: "inline-block", width: "12px", height: "12px", borderRadius: "2px", backgroundColor: COLORS[i % COLORS.length] }} />
-                              {ch.label}
-                            </td>
-                            <td style={{ textAlign: "right", padding: "8px" }}>{formatCurrency(ch.contribution)}</td>
-                            <td style={{ textAlign: "right", padding: "8px" }}>{formatCurrency(ch.totalSpend)}</td>
-                            <td style={{ textAlign: "right", padding: "8px", fontWeight: 600, color: ch.roas >= 3 ? "#108043" : ch.roas >= 1 ? "#202223" : "#DE3618" }}>{ch.roas}x</td>
-                            <td style={{ textAlign: "right", padding: "8px" }}>{formatCurrency(ch.cpa)}</td>
-                            <td style={{ textAlign: "right", padding: "8px" }}>{ch.contributionPct}%</td>
+                    {features.channelDetails ? (
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
+                        <thead>
+                          <tr style={{ borderBottom: "2px solid #e1e3e5" }}>
+                            <th style={{ textAlign: "left", padding: "8px" }}>Channel</th>
+                            <th style={{ textAlign: "right", padding: "8px" }}>Revenue Contribution</th>
+                            <th style={{ textAlign: "right", padding: "8px" }}>Ad Spend</th>
+                            <th style={{ textAlign: "right", padding: "8px" }}>ROAS</th>
+                            <th style={{ textAlign: "right", padding: "8px" }}>CPA</th>
+                            <th style={{ textAlign: "right", padding: "8px" }}>Share</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {channels.map((ch: any, i: number) => (
+                            <tr key={ch.channel} style={{ borderBottom: "1px solid #e1e3e5" }}>
+                              <td style={{ padding: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
+                                <span style={{ display: "inline-block", width: "12px", height: "12px", borderRadius: "2px", backgroundColor: COLORS[i % COLORS.length] }} />
+                                {ch.label}
+                              </td>
+                              <td style={{ textAlign: "right", padding: "8px" }}>{formatCurrency(ch.contribution)}</td>
+                              <td style={{ textAlign: "right", padding: "8px" }}>{formatCurrency(ch.totalSpend)}</td>
+                              <td style={{ textAlign: "right", padding: "8px", fontWeight: 600, color: ch.roas >= 3 ? "#108043" : ch.roas >= 1 ? "#202223" : "#DE3618" }}>{ch.roas}x</td>
+                              <td style={{ textAlign: "right", padding: "8px" }}>{formatCurrency(ch.cpa)}</td>
+                              <td style={{ textAlign: "right", padding: "8px" }}>{ch.contributionPct}%</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <s-card>
+                        <s-box padding="400">
+                          <div style={{ textAlign: "center" }}>
+                            <s-text variant="bodyMd" tone="subdued">
+                              Detailed channel breakdown with Ad Spend, ROAS, CPA, and Share is available on the Starter plan.
+                            </s-text>
+                            <s-box padding-block-start="300">
+                              <s-button onClick={() => navigate("/app/plans")}>Upgrade to Starter</s-button>
+                            </s-box>
+                          </div>
+                        </s-box>
+                      </s-card>
+                    )}
                   </s-box>
                 </div>
               )}

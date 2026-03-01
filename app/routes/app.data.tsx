@@ -30,7 +30,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       })
     : 0;
 
-  return { shopDomain, shop, dataSources, shopifySummary, hasExcelData, excelPointCount };
+  const isDev = process.env.NODE_ENV !== "production";
+  return { shopDomain, shop, dataSources, shopifySummary, hasExcelData, excelPointCount, isDev };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -130,7 +131,7 @@ function StepIndicator({ step, done, active }: { step: number; done: boolean; ac
 }
 
 export default function DataPrep() {
-  const { dataSources, shopifySummary, hasExcelData, excelPointCount } =
+  const { dataSources, shopifySummary, hasExcelData, excelPointCount, isDev } =
     useLoaderData<typeof loader>();
   const syncFetcher = useFetcher<{ success: boolean; message: string }>();
   const uploadFetcher = useFetcher<{ success: boolean; message: string }>();
@@ -231,12 +232,14 @@ export default function DataPrep() {
                           {isSyncing ? "Syncing..." : step1Done ? "Re-sync" : "Sync Shopify Data"}
                         </s-button>
                       </syncFetcher.Form>
-                      <seedFetcher.Form method="post">
-                        <input type="hidden" name="intent" value="seed_test_data" />
-                        <s-button type="submit" disabled={isSeeding}>
-                          {isSeeding ? "Generating..." : "Generate Test Data"}
-                        </s-button>
-                      </seedFetcher.Form>
+                      {isDev && (
+                        <seedFetcher.Form method="post">
+                          <input type="hidden" name="intent" value="seed_test_data" />
+                          <s-button type="submit" disabled={isSeeding}>
+                            {isSeeding ? "Generating..." : "Generate Test Data"}
+                          </s-button>
+                        </seedFetcher.Form>
+                      )}
                     </div>
                   </s-box>
                 </div>
