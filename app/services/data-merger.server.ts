@@ -38,7 +38,7 @@ export async function mergeShopifyAndExcelData(
       data: [],
       columns: [],
       rowCount: 0,
-      message: "データソースが見つかりません",
+      message: "No data sources found",
     };
   }
 
@@ -107,7 +107,7 @@ export async function mergeShopifyAndExcelData(
     data: mergedData,
     columns,
     rowCount: mergedData.length,
-    message: `${mergedData.length}日分のデータを統合しました（${variables.length}変数）`,
+    message: `Merged ${mergedData.length} days of data (${variables.length} variables)`,
   };
 }
 

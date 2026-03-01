@@ -182,7 +182,7 @@ export async function syncShopifyData(
 
     return {
       success: true,
-      message: `${totalCount}件のデータポイントを同期しました（${orders.length}件の注文から集計）`,
+      message: `Synced ${totalCount} data points (aggregated from ${orders.length} orders)`,
       count: totalCount,
     };
   } catch (error) {
@@ -195,7 +195,7 @@ export async function syncShopifyData(
 
     return {
       success: false,
-      message: `同期エラー: ${error instanceof Error ? error.message : "不明なエラー"}`,
+      message: `Sync error: ${error instanceof Error ? error.message : "Unknown error"}`,
       count: 0,
     };
   }

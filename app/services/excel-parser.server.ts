@@ -55,18 +55,18 @@ export async function parseExcelUpload(
   } catch {
     errors.push({
       type: "FORMAT",
-      message: "ファイル形式が不正です",
+      message: "Invalid file format",
       severity: "error",
-      details: ".xlsx形式のExcelファイルをアップロードしてください",
+      details: "Please upload an .xlsx Excel file",
     });
     return { success: false, errors, warnings, data: [], columns: [], rowCount: 0 };
   }
 
-  const sheet = workbook.getWorksheet("メディアデータ") || workbook.worksheets[0];
+  const sheet = workbook.getWorksheet("Media Data") || workbook.getWorksheet("メディアデータ") || workbook.worksheets[0];
   if (!sheet) {
     errors.push({
       type: "FORMAT",
-      message: "ワークシートが見つかりません",
+      message: "No worksheet found",
       severity: "error",
     });
     return { success: false, errors, warnings, data: [], columns: [], rowCount: 0 };
@@ -83,9 +83,9 @@ export async function parseExcelUpload(
   if (headers.length === 0 || headers[0] !== "date") {
     errors.push({
       type: "HEADER",
-      message: "ヘッダーが不正です",
+      message: "Invalid header",
       severity: "error",
-      details: "1列目は「date」である必要があります",
+      details: "The first column must be \"date\"",
     });
     return { success: false, errors, warnings, data: [], columns: headers, rowCount: 0 };
   }
@@ -129,9 +129,9 @@ export async function parseExcelUpload(
     if (!date || isNaN(date.getTime())) {
       errors.push({
         type: "DATE",
-        message: `行${rowNumber}: 日付が不正です`,
+        message: `Row ${rowNumber}: Invalid date`,
         severity: "error",
-        details: `値: ${dateCell.value}`,
+        details: `Value: ${dateCell.value}`,
       });
       return;
     }
@@ -158,9 +158,9 @@ export async function parseExcelUpload(
       if (isNaN(numValue)) {
         errors.push({
           type: "TYPE",
-          message: `行${rowNumber}, 列${col}: 数値ではありません`,
+          message: `Row ${rowNumber}, column ${col}: Not a number`,
           severity: "error",
-          details: `値: ${rawValue}`,
+          details: `Value: ${rawValue}`,
         });
         rowData[col] = 0;
         continue;
@@ -180,9 +180,9 @@ export async function parseExcelUpload(
     if (missingRate > MAX_MISSING_RATE) {
       warnings.push({
         type: "MISSING",
-        message: `列「${col}」の欠損率が${(missingRate * 100).toFixed(0)}%です`,
+        message: `Column "${col}" has ${(missingRate * 100).toFixed(0)}% missing values`,
         severity: "warning",
-        details: `許容値: ${(MAX_MISSING_RATE * 100).toFixed(0)}%以下`,
+        details: `Threshold: ${(MAX_MISSING_RATE * 100).toFixed(0)}% or less`,
       });
     }
   }
@@ -206,9 +206,9 @@ export async function parseExcelUpload(
     if (outliers.length > 0) {
       warnings.push({
         type: "OUTLIER",
-        message: `列「${col}」に${outliers.length}件の異常値があります`,
+        message: `Column "${col}" has ${outliers.length} outlier(s)`,
         severity: "warning",
-        details: `範囲: ${lowerBound.toFixed(0)} 〜 ${upperBound.toFixed(0)}`,
+        details: `Expected range: ${lowerBound.toFixed(0)} – ${upperBound.toFixed(0)}`,
       });
     }
   }
@@ -226,11 +226,11 @@ export async function parseExcelUpload(
     if (startDiff > 7 * dayMs || endDiff > 7 * dayMs) {
       warnings.push({
         type: "PERIOD",
-        message: "Excelの期間がShopifyデータと一致しません",
+        message: "Excel date range does not match Shopify data",
         severity: "warning",
         details:
-          `Excel: ${dataStart.toISOString().slice(0, 10)} 〜 ${dataEnd.toISOString().slice(0, 10)}, ` +
-          `Shopify: ${expectedDateRange.start.toISOString().slice(0, 10)} 〜 ${expectedDateRange.end.toISOString().slice(0, 10)}`,
+          `Excel: ${dataStart.toISOString().slice(0, 10)} – ${dataEnd.toISOString().slice(0, 10)}, ` +
+          `Shopify: ${expectedDateRange.start.toISOString().slice(0, 10)} – ${expectedDateRange.end.toISOString().slice(0, 10)}`,
       });
     }
 
@@ -250,7 +250,7 @@ export async function parseExcelUpload(
     if (gapCount > 0) {
       warnings.push({
         type: "GAP",
-        message: `${gapCount}日分のデータが欠損しています`,
+        message: `${gapCount} day(s) of data are missing`,
         severity: "warning",
       });
     }

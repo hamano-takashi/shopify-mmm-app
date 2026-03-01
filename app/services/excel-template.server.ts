@@ -15,11 +15,11 @@ const CHANNEL_SUFFIXES = ["_imp", "_click", "_cost"];
 
 // Context variables
 const CONTEXT_VARIABLES = [
-  { id: "event_flag", label: "イベントフラグ" },
-  { id: "cf_flag", label: "CFフラグ" },
-  { id: "pr_flag", label: "PRフラグ" },
-  { id: "temperature", label: "気温" },
-  { id: "line_friends", label: "LINE友だち数" },
+  { id: "event_flag", label: "Event Flag" },
+  { id: "cf_flag", label: "CF Flag" },
+  { id: "pr_flag", label: "PR Flag" },
+  { id: "temperature", label: "Temperature" },
+  { id: "line_friends", label: "LINE Friends" },
 ];
 
 interface TemplateOptions {
@@ -69,7 +69,7 @@ export async function generateExcelTemplate(
   workbook.created = new Date();
 
   // --- Sheet 1: Media Data ---
-  const mediaSheet = workbook.addWorksheet("メディアデータ", {
+  const mediaSheet = workbook.addWorksheet("Media Data", {
     properties: { defaultColWidth: 15 },
   });
 
@@ -141,15 +141,15 @@ export async function generateExcelTemplate(
     }
   });
 
-  // Add sub-header row with Japanese labels
-  const subHeaders: string[] = ["日付"];
+  // Add sub-header row with descriptive labels
+  const subHeaders: string[] = ["Date"];
   subHeaders.push(
-    "売上(税引後)",
-    "注文数",
-    "セッション",
-    "ページビュー",
-    "新規顧客",
-    "既存顧客"
+    "Net Sales",
+    "Orders",
+    "Sessions",
+    "Pageviews",
+    "New Customers",
+    "Returning Customers"
   );
 
   for (const channel of channels) {
@@ -213,28 +213,28 @@ export async function generateExcelTemplate(
   ];
 
   // --- Sheet 2: Instructions ---
-  const instrSheet = workbook.addWorksheet("入力方法", {
+  const instrSheet = workbook.addWorksheet("Instructions", {
     properties: { defaultColWidth: 50 },
   });
 
-  instrSheet.addRow(["MMM Analytics テンプレート入力方法"]);
+  instrSheet.addRow(["MMM Analytics Template Instructions"]);
   instrSheet.getRow(1).font = { bold: true, size: 14 };
   instrSheet.addRow([]);
-  instrSheet.addRow(["1. グレーの列（Shopifyデータ）は自動取得されます。入力不要です。"]);
-  instrSheet.addRow(["2. 黄色の列（Cost）は広告費を日別に入力してください。"]);
-  instrSheet.addRow(["3. 青の列（Imp/Click）はインプレッション・クリック数を入力してください。"]);
-  instrSheet.addRow(["4. コンテキスト変数（イベントフラグ等）は該当日に1を入力してください。"]);
+  instrSheet.addRow(["1. Gray columns (Shopify data) are auto-fetched. No input needed."]);
+  instrSheet.addRow(["2. Yellow columns (Cost) — enter daily ad spend."]);
+  instrSheet.addRow(["3. Blue columns (Imp/Click) — enter impressions and clicks."]);
+  instrSheet.addRow(["4. Context variables (Event Flag, etc.) — enter 1 on applicable dates."]);
   instrSheet.addRow([]);
-  instrSheet.addRow(["■ データソース別の取得方法:"]);
-  instrSheet.addRow(["  Google Ads: 管理画面 → レポート → 日別でダウンロード"]);
-  instrSheet.addRow(["  Meta Ads: 広告マネージャー → エクスポート → 日別"]);
-  instrSheet.addRow(["  LINE Ads: LINE広告 → パフォーマンスレポート → 日別"]);
-  instrSheet.addRow(["  Yahoo Ads: 検索広告/ディスプレイ広告 → レポート → 日別"]);
+  instrSheet.addRow(["How to export data from each platform:"]);
+  instrSheet.addRow(["  Google Ads: Admin Console → Reports → Download by day"]);
+  instrSheet.addRow(["  Meta Ads: Ads Manager → Export → Daily breakdown"]);
+  instrSheet.addRow(["  LINE Ads: LINE Ads → Performance Report → Daily"]);
+  instrSheet.addRow(["  Yahoo Ads: Search/Display Ads → Reports → Daily"]);
   instrSheet.addRow([]);
-  instrSheet.addRow(["■ 注意事項:"]);
-  instrSheet.addRow(["  - 日付フォーマットは yyyy-mm-dd を使用してください"]);
-  instrSheet.addRow(["  - 空欄は0として処理されます"]);
-  instrSheet.addRow(["  - 異常値がある場合はアップロード時に警告が表示されます"]);
+  instrSheet.addRow(["Notes:"]);
+  instrSheet.addRow(["  - Use yyyy-mm-dd date format"]);
+  instrSheet.addRow(["  - Blank cells are treated as 0"]);
+  instrSheet.addRow(["  - Outliers will trigger warnings during upload"]);
 
   // Generate buffer
   const buffer = await workbook.xlsx.writeBuffer();

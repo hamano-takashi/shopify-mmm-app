@@ -225,7 +225,7 @@ export async function startAnalysis(
     // Merge all data
     const merged = await mergeShopifyAndExcelData(shopId);
     if (!merged.success || merged.data.length === 0) {
-      throw new Error("データの統合に失敗しました");
+      throw new Error("Failed to merge data");
     }
 
     const data = merged.data;
@@ -236,7 +236,7 @@ export async function startAnalysis(
     const channels = costColumns.map((c) => c.replace("_cost", ""));
 
     if (channels.length === 0) {
-      throw new Error("広告チャネルデータが見つかりません（_cost列が必要です）");
+      throw new Error("No ad channel data found (_cost columns required)");
     }
 
     // Build regression: y = beta0 + beta1*cost1 + beta2*cost2 + ...
@@ -408,7 +408,7 @@ export async function startAnalysis(
     return {
       analysisId: analysis.id,
       success: true,
-      message: `分析が完了しました（${n}日分、${channels.length}チャネル、R²=${results.summary.r2}）`,
+      message: `Analysis completed (${n} days, ${channels.length} channels, R²=${results.summary.r2})`,
     };
   } catch (error) {
     console.error("Analysis error:", error);
@@ -417,14 +417,14 @@ export async function startAnalysis(
       where: { id: analysis.id },
       data: {
         status: "FAILED",
-        errorMsg: error instanceof Error ? error.message : "不明なエラー",
+        errorMsg: error instanceof Error ? error.message : "Unknown error",
       },
     });
 
     return {
       analysisId: analysis.id,
       success: false,
-      message: `分析エラー: ${error instanceof Error ? error.message : "不明なエラー"}`,
+      message: `Analysis error: ${error instanceof Error ? error.message : "Unknown error"}`,
     };
   }
 }

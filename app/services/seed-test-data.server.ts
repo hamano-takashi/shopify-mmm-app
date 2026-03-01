@@ -93,14 +93,14 @@ export async function seedTestData(
 
     return {
       success: true,
-      message: `${totalCount}件のテストデータポイントを生成しました（91日分）`,
+      message: `Generated ${totalCount} test data points (91 days)`,
       count: totalCount,
     };
   } catch (error) {
     console.error("Seed test data error:", error);
     return {
       success: false,
-      message: `テストデータ生成エラー: ${error instanceof Error ? error.message : "不明"}`,
+      message: `Test data generation error: ${error instanceof Error ? error.message : "Unknown"}`,
       count: 0,
     };
   }
