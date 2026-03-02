@@ -1,5 +1,9 @@
 .cache
 build
 node_modules
-engine/.venv
-engine/__pycache__
+engine/
+prisma/dev.sqlite
+prisma/dev.sqlite-journal
+.env
+.env.*
+fly.toml

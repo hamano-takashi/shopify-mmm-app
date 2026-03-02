@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="polaris.css">
+</head>
+<body>
+  <div class="admin-header">
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M7.2 2.8c-.6 0-1.1.5-1.1 1.1v20.2c0 .6.5 1.1 1.1 1.1h13.6c.6 0 1.1-.5 1.1-1.1V8.4L16.8 2.8H7.2z" fill="#95BF47"/><path d="M16.8 2.8v5.6h5.1L16.8 2.8z" fill="#5E8E3E"/></svg>
+    <span class="store-name">mmm-test-store-2</span>
+    <div class="search-bar">Search</div>
+    <div class="nav-links"><a href="#">Orders</a><a href="#">Products</a><a href="#">Apps</a><a href="#">Settings</a></div>
+  </div>
+  <div class="app-frame">
+    <nav class="app-nav">
+      <a class="nav-item" href="#"><span class="nav-icon">&#128200;</span> Dashboard</a>
+      <a class="nav-item" href="#"><span class="nav-icon">&#128202;</span> Data Setup</a>
+      <a class="nav-item active" href="#"><span class="nav-icon">&#9881;</span> Analysis</a>
+      <a class="nav-item" href="#"><span class="nav-icon">&#128176;</span> Plans</a>
+      <a class="nav-item" href="#"><span class="nav-icon">&#9881;</span> Settings</a>
+    </nav>
+    <div class="app-content">
+      <div class="page-header">
+        <a class="back-link" href="#">← Analysis</a>
+        <div class="title-row">
+          <div>
+            <h1>Analysis Results #a3f8c2e1</h1>
+            <div class="subtitle">2025-12-01 - 2026-02-28 (90 days)</div>
+          </div>
+          <button class="btn">Download Excel Report</button>
+        </div>
+      </div>
+
+      <!-- Summary Cards -->
+      <div class="layout-row">
+        <div class="col"><div class="card"><div class="card-body">
+          <div class="text-body-sm text-subdued">Total Revenue</div>
+          <div class="text-heading-lg">$284,500</div>
+        </div></div></div>
+        <div class="col"><div class="card"><div class="card-body">
+          <div class="text-body-sm text-subdued">Total Ad Spend</div>
+          <div class="text-heading-lg">$45,200</div>
+        </div></div></div>
+        <div class="col"><div class="card"><div class="card-body">
+          <div class="text-body-sm text-subdued">Overall ROAS</div>
+          <div class="text-heading-lg">3.8x</div>
+        </div></div></div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="card mb-16">
+        <div style="padding:8px;">
+          <div class="flex gap-8">
+            <button style="padding:8px 16px; border:none; border-bottom:3px solid transparent; background:transparent; cursor:pointer; font-weight:400; color:#637381; font-size:14px;">Channel Contribution</button>
+            <button style="padding:8px 16px; border:none; border-bottom:3px solid transparent; background:transparent; cursor:pointer; font-weight:400; color:#637381; font-size:14px;">Saturation & Marginal ROI</button>
+            <button style="padding:8px 16px; border:none; border-bottom:3px solid #5C6AC4; background:transparent; cursor:pointer; font-weight:600; color:#202223; font-size:14px;">Budget Optimization</button>
+            <button style="padding:8px 16px; border:none; border-bottom:3px solid transparent; background:transparent; cursor:pointer; font-weight:400; color:#637381; font-size:14px;">Model Accuracy</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Budget Optimization Content -->
+      <div class="card">
+        <div class="card-body">
+          <div class="text-heading-md mb-8">Budget Optimization</div>
+          <div class="banner banner-success mb-16">
+            &#10003; Optimization suggestions ready — review recommended budget allocation below
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Channel</th>
+                <th class="text-right">Current Budget</th>
+                <th class="text-center">→</th>
+                <th class="text-right">Recommended</th>
+                <th class="text-right">Change</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="flex flex-center gap-8"><span class="color-swatch" style="background:#5C6AC4;"></span> Google Ads</span></td>
+                <td class="text-right">$19,607</td>
+                <td class="text-center">→</td>
+                <td class="text-right fw-600">$18,200</td>
+                <td class="text-right color-red fw-600">-7%</td>
+              </tr>
+              <tr>
+                <td><span class="flex flex-center gap-8"><span class="color-swatch" style="background:#007ACE;"></span> Meta Ads</span></td>
+                <td class="text-right">$18,133</td>
+                <td class="text-center">→</td>
+                <td class="text-right fw-600">$14,500</td>
+                <td class="text-right color-red fw-600">-20%</td>
+              </tr>
+              <tr>
+                <td><span class="flex flex-center gap-8"><span class="color-swatch" style="background:#00A0AC;"></span> LINE Ads</span></td>
+                <td class="text-right">$4,618</td>
+                <td class="text-center">→</td>
+                <td class="text-right fw-600">$7,200</td>
+                <td class="text-right color-green fw-600">+56%</td>
+              </tr>
+              <tr>
+                <td><span class="flex flex-center gap-8"><span class="color-swatch" style="background:#108043;"></span> TikTok Ads</span></td>
+                <td class="text-right">$2,842</td>
+                <td class="text-center">→</td>
+                <td class="text-right fw-600">$5,300</td>
+                <td class="text-right color-green fw-600">+86%</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="mt-16" style="padding:16px; background:#F9FAFB; border-radius:8px;">
+            <div class="flex gap-24" style="flex-wrap:wrap;">
+              <div>
+                <div class="text-body-sm text-subdued">Total Budget</div>
+                <div class="fw-600">$45,200 → $45,200</div>
+                <div class="text-body-sm text-subdued">(no change)</div>
+              </div>
+              <div>
+                <div class="text-body-sm text-subdued">Expected Revenue</div>
+                <div class="fw-600">$284,500 → <span class="color-green">$319,800</span></div>
+              </div>
+              <div>
+                <div class="text-body-sm text-subdued">Revenue Lift</div>
+                <div class="fw-700 color-green" style="font-size:20px;">+$35,300</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

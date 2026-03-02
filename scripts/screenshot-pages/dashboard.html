@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="polaris.css">
+</head>
+<body>
+  <!-- Admin Header -->
+  <div class="admin-header">
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M7.2 2.8c-.6 0-1.1.5-1.1 1.1v20.2c0 .6.5 1.1 1.1 1.1h13.6c.6 0 1.1-.5 1.1-1.1V8.4L16.8 2.8H7.2z" fill="#95BF47"/><path d="M16.8 2.8v5.6h5.1L16.8 2.8z" fill="#5E8E3E"/></svg>
+    <span class="store-name">mmm-test-store-2</span>
+    <div class="search-bar">Search</div>
+    <div class="nav-links">
+      <a href="#">Orders</a>
+      <a href="#">Products</a>
+      <a href="#">Apps</a>
+      <a href="#">Settings</a>
+    </div>
+  </div>
+
+  <div class="app-frame">
+    <!-- Sidebar -->
+    <nav class="app-nav">
+      <a class="nav-item active" href="#">
+        <span class="nav-icon">&#128200;</span> Dashboard
+      </a>
+      <a class="nav-item" href="#">
+        <span class="nav-icon">&#128202;</span> Data Setup
+      </a>
+      <a class="nav-item" href="#">
+        <span class="nav-icon">&#9881;</span> Analysis
+      </a>
+      <a class="nav-item" href="#">
+        <span class="nav-icon">&#128176;</span> Plans
+      </a>
+      <a class="nav-item" href="#">
+        <span class="nav-icon">&#9881;</span> Settings
+      </a>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="app-content">
+      <!-- Header Card -->
+      <div class="card mb-16">
+        <div class="card-body">
+          <div class="flex flex-between flex-center">
+            <div>
+              <div class="flex flex-center gap-8">
+                <h1 style="font-size:20px; font-weight:600;">MMM Analytics</h1>
+                <span class="badge badge-info">FREE Plan</span>
+              </div>
+              <div class="text-body-md text-subdued mt-8">
+                Understand each channel's true contribution and optimize your budget allocation
+              </div>
+            </div>
+            <div class="flex gap-8">
+              <button class="btn">Upgrade</button>
+              <button class="btn">Data Setup</button>
+              <button class="btn btn-primary">Run Analysis</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI Cards -->
+      <div class="layout-row">
+        <div class="col">
+          <div class="card">
+            <div class="card-body">
+              <div class="flex flex-between flex-center">
+                <span class="text-body-sm text-subdued">Shopify Data</span>
+                <span class="dot dot-green"></span>
+              </div>
+              <div style="font-size:28px; font-weight:700; margin-top:4px;">1,820</div>
+              <div class="text-body-sm text-subdued">Data points | Last sync: 2h ago</div>
+            </div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="card">
+            <div class="card-body">
+              <div class="flex flex-between flex-center">
+                <span class="text-body-sm text-subdued">Ad Data</span>
+                <span class="dot dot-green"></span>
+              </div>
+              <div style="font-size:28px; font-weight:700; margin-top:4px;">Connected</div>
+              <div class="text-body-sm text-subdued">Excel uploaded</div>
+            </div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="card">
+            <div class="card-body">
+              <span class="text-body-sm text-subdued">Completed Analyses</span>
+              <div style="font-size:28px; font-weight:700; margin-top:4px;">3</div>
+              <div class="text-body-sm text-subdued">Latest: 2/28/2026</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Latest Analysis Summary -->
+      <div class="card mb-16">
+        <div class="card-body">
+          <div class="flex flex-between flex-center mb-16">
+            <span class="text-heading-md">Latest Analysis Summary</span>
+            <button class="btn btn-slim">View Details</button>
+          </div>
+
+          <!-- Summary KPIs -->
+          <div class="flex gap-24 mb-16" style="flex-wrap:wrap;">
+            <div style="flex:1; min-width:140px; padding:12px 16px; background:#F9FAFB; border-radius:8px;">
+              <div class="text-subdued" style="font-size:12px;">Total Revenue</div>
+              <div style="font-size:24px; font-weight:700;">$284,500</div>
+            </div>
+            <div style="flex:1; min-width:140px; padding:12px 16px; background:#F9FAFB; border-radius:8px;">
+              <div class="text-subdued" style="font-size:12px;">Total Ad Spend</div>
+              <div style="font-size:24px; font-weight:700;">$45,200</div>
+            </div>
+            <div style="flex:1; min-width:140px; padding:12px 16px; background:#F9FAFB; border-radius:8px;">
+              <div class="text-subdued" style="font-size:12px;">Overall ROAS</div>
+              <div style="font-size:24px; font-weight:700; color:#108043;">3.8x</div>
+            </div>
+            <div style="flex:1; min-width:140px; padding:12px 16px; background:#F9FAFB; border-radius:8px;">
+              <div class="text-subdued" style="font-size:12px;">Model Accuracy (R²)</div>
+              <div style="font-size:24px; font-weight:700; color:#108043;">0.92</div>
+            </div>
+          </div>
+
+          <!-- Top Channels -->
+          <div class="text-heading-sm mb-12">Channel Contribution</div>
+          <div>
+            <div class="flex flex-center gap-12" style="padding:8px 0; border-bottom:1px solid #f1f1f1;">
+              <span style="width:24px; text-align:center; color:#637381; font-size:12px;">1</span>
+              <span style="flex:1; font-weight:500;">Google Ads</span>
+              <span class="text-subdued" style="font-size:13px;">$82,350</span>
+              <span style="width:60px; text-align:right; font-weight:600; color:#108043;">4.2x</span>
+              <span style="width:50px; text-align:right; color:#637381; font-size:13px;">28.9%</span>
+            </div>
+            <div class="flex flex-center gap-12" style="padding:8px 0; border-bottom:1px solid #f1f1f1;">
+              <span style="width:24px; text-align:center; color:#637381; font-size:12px;">2</span>
+              <span style="flex:1; font-weight:500;">Meta Ads</span>
+              <span class="text-subdued" style="font-size:13px;">$65,280</span>
+              <span style="width:60px; text-align:right; font-weight:600; color:#108043;">3.6x</span>
+              <span style="width:50px; text-align:right; color:#637381; font-size:13px;">22.9%</span>
+            </div>
+            <div class="flex flex-center gap-12" style="padding:8px 0; border-bottom:1px solid #f1f1f1;">
+              <span style="width:24px; text-align:center; color:#637381; font-size:12px;">3</span>
+              <span style="flex:1; font-weight:500;">LINE Ads</span>
+              <span class="text-subdued" style="font-size:13px;">$24,130</span>
+              <span style="width:60px; text-align:right; font-weight:600;">2.8x</span>
+              <span style="width:50px; text-align:right; color:#637381; font-size:13px;">8.5%</span>
+            </div>
+            <div class="flex flex-center gap-12" style="padding:8px 0;">
+              <span style="width:24px; text-align:center; color:#637381; font-size:12px;">4</span>
+              <span style="flex:1; font-weight:500;">TikTok Ads</span>
+              <span class="text-subdued" style="font-size:13px;">$18,740</span>
+              <span style="width:60px; text-align:right; font-weight:600; color:#108043;">5.1x</span>
+              <span style="width:50px; text-align:right; color:#637381; font-size:13px;">6.6%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

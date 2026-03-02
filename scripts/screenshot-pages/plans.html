@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="polaris.css">
+</head>
+<body>
+  <!-- Admin Header -->
+  <div class="admin-header">
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M7.2 2.8c-.6 0-1.1.5-1.1 1.1v20.2c0 .6.5 1.1 1.1 1.1h13.6c.6 0 1.1-.5 1.1-1.1V8.4L16.8 2.8H7.2z" fill="#95BF47"/><path d="M16.8 2.8v5.6h5.1L16.8 2.8z" fill="#5E8E3E"/></svg>
+    <span class="store-name">mmm-test-store-2</span>
+    <div class="search-bar">Search</div>
+    <div class="nav-links">
+      <a href="#">Orders</a>
+      <a href="#">Products</a>
+      <a href="#">Apps</a>
+      <a href="#">Settings</a>
+    </div>
+  </div>
+
+  <div class="app-frame">
+    <nav class="app-nav">
+      <a class="nav-item" href="#"><span class="nav-icon">&#128200;</span> Dashboard</a>
+      <a class="nav-item" href="#"><span class="nav-icon">&#128202;</span> Data Setup</a>
+      <a class="nav-item" href="#"><span class="nav-icon">&#9881;</span> Analysis</a>
+      <a class="nav-item active" href="#"><span class="nav-icon">&#128176;</span> Plans</a>
+      <a class="nav-item" href="#"><span class="nav-icon">&#9881;</span> Settings</a>
+    </nav>
+
+    <div class="app-content">
+      <div class="page-header">
+        <a class="back-link" href="#">← Settings</a>
+        <h1>Plans & Pricing</h1>
+      </div>
+
+      <div class="text-center mb-8">
+        <div class="text-heading-lg">Choose the right plan for your business</div>
+      </div>
+      <div class="text-center mb-16">
+        <div class="text-body-md text-subdued">All paid plans include a 7-day free trial. Cancel anytime.</div>
+      </div>
+
+      <!-- Plan Cards -->
+      <div class="layout-row" style="align-items:stretch;">
+        <!-- Free -->
+        <div class="col">
+          <div class="card" style="height:100%;">
+            <div class="card-body" style="display:flex; flex-direction:column; height:100%;">
+              <div class="text-center mb-16">
+                <div class="mb-8"><span class="badge badge-success">Current Plan</span></div>
+                <div class="text-heading-md">Free</div>
+                <div class="mt-8">
+                  <span style="font-size:36px; font-weight:700;">$0</span>
+                  <span class="text-subdued" style="font-size:14px; margin-left:4px;">/forever</span>
+                </div>
+              </div>
+              <div style="border-top:1px solid #e1e3e5; padding-top:16px; margin-bottom:16px; flex:1;">
+                <div class="flex flex-center gap-8" style="padding:6px 0; font-size:14px;">
+                  <span class="color-green fw-700">&#10003;</span> Dashboard overview
+                </div>
+                <div class="flex flex-center gap-8" style="padding:6px 0; font-size:14px;">
+                  <span class="color-green fw-700">&#10003;</span> Shopify data sync
+                </div>
+                <div class="flex flex-center gap-8" style="padding:6px 0; font-size:14px;">
+                  <span class="color-green fw-700">&#10003;</span> 1 analysis per month
+                </div>
+                <div class="flex flex-center gap-8" style="padding:6px 0; font-size:14px;">
+                  <span class="color-green fw-700">&#10003;</span> Basic results view
+                </div>
+              </div>
+              <div style="border-top:1px solid #e1e3e5; padding-top:16px;">
+                <button class="btn btn-full btn-disabled">Current Plan</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Starter -->
+        <div class="col">
+          <div class="card" style="height:100%; border: 2px solid #5C6AC4;">
+            <div class="card-body" style="display:flex; flex-direction:column; height:100%;">
+              <div class="text-center mb-16">
+                <div class="mb-8"><span class="badge badge-info">Most Popular</span></div>
+                <div class="text-heading-md">Starter</div>
+                <div class="mt-8">
+                  <span style="font-size:36px; font-weight:700;">$19</span>
+                  <span class="text-subdued" style="font-size:14px; margin-left:4px;">/per month</span>
+                </div>
+              </div>
+              <div style="border-top:1px solid #e1e3e5; padding-top:16px; margin-bottom:16px; flex:1;">
+                <div class="flex flex-center gap-8" style="padding:6px 0; font-size:14px;">
+                  <span class="color-green fw-700">&#10003;</span> Everything in Free
+                </div>
+                <div class="flex flex-center gap-8" style="padding:6px 0; font-size:14px;">
+                  <span class="color-green fw-700">&#10003;</span> Unlimited analyses
+                </div>
+                <div class="flex flex-center gap-8" style="padding:6px 0; font-size:14px;">
+                  <span class="color-green fw-700">&#10003;</span> Excel report export
+                </div>
+                <div class="flex flex-center gap-8" style="padding:6px 0; font-size:14px;">
+                  <span class="color-green fw-700">&#10003;</span> All channel details
+                </div>
+                <div class="flex flex-center gap-8" style="padding:6px 0; font-size:14px;">
+                  <span class="color-green fw-700">&#10003;</span> 7-day free trial
+                </div>
+              </div>
+              <div style="border-top:1px solid #e1e3e5; padding-top:16px;">
+                <button class="btn btn-primary btn-full">Upgrade to Starter</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pro -->
+        <div class="col">
+          <div class="card" style="height:100%;">
+            <div class="card-body" style="display:flex; flex-direction:column; height:100%;">
+              <div class="text-center mb-16">
+                <div class="mb-8" style="visibility:hidden;"><span class="badge">.</span></div>
+                <div class="text-heading-md">Pro</div>
+                <div class="mt-8">
+                  <span style="font-size:36px; font-weight:700;">$49</span>
+                  <span class="text-subdued" style="font-size:14px; margin-left:4px;">/per month</span>
+                </div>
+              </div>
+              <div style="border-top:1px solid #e1e3e5; padding-top:16px; margin-bottom:16px; flex:1;">
+                <div class="flex flex-center gap-8" style="padding:6px 0; font-size:14px;">
+                  <span class="color-green fw-700">&#10003;</span> Everything in Starter
+                </div>
+                <div class="flex flex-center gap-8" style="padding:6px 0; font-size:14px;">
+                  <span class="color-green fw-700">&#10003;</span> Budget optimization
+                </div>
+                <div class="flex flex-center gap-8" style="padding:6px 0; font-size:14px;">
+                  <span class="color-green fw-700">&#10003;</span> Saturation analysis
+                </div>
+                <div class="flex flex-center gap-8" style="padding:6px 0; font-size:14px;">
+                  <span class="color-green fw-700">&#10003;</span> Marginal ROI insights
+                </div>
+                <div class="flex flex-center gap-8" style="padding:6px 0; font-size:14px;">
+                  <span class="color-green fw-700">&#10003;</span> 7-day free trial
+                </div>
+              </div>
+              <div style="border-top:1px solid #e1e3e5; padding-top:16px;">
+                <button class="btn btn-primary btn-full">Upgrade to Pro</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

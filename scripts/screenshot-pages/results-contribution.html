@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="polaris.css">
+</head>
+<body>
+  <div class="admin-header">
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M7.2 2.8c-.6 0-1.1.5-1.1 1.1v20.2c0 .6.5 1.1 1.1 1.1h13.6c.6 0 1.1-.5 1.1-1.1V8.4L16.8 2.8H7.2z" fill="#95BF47"/><path d="M16.8 2.8v5.6h5.1L16.8 2.8z" fill="#5E8E3E"/></svg>
+    <span class="store-name">mmm-test-store-2</span>
+    <div class="search-bar">Search</div>
+    <div class="nav-links"><a href="#">Orders</a><a href="#">Products</a><a href="#">Apps</a><a href="#">Settings</a></div>
+  </div>
+  <div class="app-frame">
+    <nav class="app-nav">
+      <a class="nav-item" href="#"><span class="nav-icon">&#128200;</span> Dashboard</a>
+      <a class="nav-item" href="#"><span class="nav-icon">&#128202;</span> Data Setup</a>
+      <a class="nav-item active" href="#"><span class="nav-icon">&#9881;</span> Analysis</a>
+      <a class="nav-item" href="#"><span class="nav-icon">&#128176;</span> Plans</a>
+      <a class="nav-item" href="#"><span class="nav-icon">&#9881;</span> Settings</a>
+    </nav>
+    <div class="app-content">
+      <div class="page-header">
+        <a class="back-link" href="#">← Analysis</a>
+        <div class="title-row">
+          <div>
+            <h1>Analysis Results #a3f8c2e1</h1>
+            <div class="subtitle">2025-12-01 - 2026-02-28 (90 days)</div>
+          </div>
+          <button class="btn">Download Excel Report</button>
+        </div>
+      </div>
+
+      <!-- Summary Cards -->
+      <div class="layout-row">
+        <div class="col"><div class="card"><div class="card-body">
+          <div class="text-body-sm text-subdued">Total Revenue</div>
+          <div class="text-heading-lg">$284,500</div>
+        </div></div></div>
+        <div class="col"><div class="card"><div class="card-body">
+          <div class="text-body-sm text-subdued">Total Ad Spend</div>
+          <div class="text-heading-lg">$45,200</div>
+        </div></div></div>
+        <div class="col"><div class="card"><div class="card-body">
+          <div class="text-body-sm text-subdued">Overall ROAS</div>
+          <div class="text-heading-lg">3.8x</div>
+        </div></div></div>
+      </div>
+
+      <!-- Tab Navigation -->
+      <div class="card mb-16">
+        <div style="padding:8px;">
+          <div class="flex gap-8" style="overflow-x:auto;">
+            <button style="padding:8px 16px; border:none; border-bottom:3px solid #5C6AC4; background:transparent; cursor:pointer; font-weight:600; color:#202223; font-size:14px;">Channel Contribution</button>
+            <button style="padding:8px 16px; border:none; border-bottom:3px solid transparent; background:transparent; cursor:pointer; font-weight:400; color:#637381; font-size:14px;">Saturation & Marginal ROI</button>
+            <button style="padding:8px 16px; border:none; border-bottom:3px solid transparent; background:transparent; cursor:pointer; font-weight:400; color:#637381; font-size:14px;">Budget Optimization</button>
+            <button style="padding:8px 16px; border:none; border-bottom:3px solid transparent; background:transparent; cursor:pointer; font-weight:400; color:#637381; font-size:14px;">Model Accuracy</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Channel Contribution Content -->
+      <div class="card">
+        <div class="card-body">
+          <div class="text-heading-md mb-8">Channel Contribution</div>
+          <div class="text-body-sm text-subdued mb-16">Base revenue (non-ad): $94,085 (33.1%)</div>
+
+          <!-- Bar Chart -->
+          <div class="mb-12">
+            <div class="flex flex-between mb-4"><span class="fw-500">Google Ads</span><span>28.9% / ROAS 4.2x</span></div>
+            <div class="progress-bar"><div class="progress-fill" style="width:58%; background:#5C6AC4;">$82,350</div></div>
+          </div>
+          <div class="mb-12">
+            <div class="flex flex-between mb-4"><span class="fw-500">Meta Ads</span><span>22.9% / ROAS 3.6x</span></div>
+            <div class="progress-bar"><div class="progress-fill" style="width:46%; background:#007ACE;">$65,280</div></div>
+          </div>
+          <div class="mb-12">
+            <div class="flex flex-between mb-4"><span class="fw-500">LINE Ads</span><span>8.5% / ROAS 2.8x</span></div>
+            <div class="progress-bar"><div class="progress-fill" style="width:17%; background:#00A0AC;">$24,130</div></div>
+          </div>
+          <div class="mb-12">
+            <div class="flex flex-between mb-4"><span class="fw-500">TikTok Ads</span><span>6.6% / ROAS 5.1x</span></div>
+            <div class="progress-bar"><div class="progress-fill" style="width:13%; background:#108043;">$18,740</div></div>
+          </div>
+
+          <!-- Detail Table -->
+          <div class="mt-16">
+            <table>
+              <thead>
+                <tr>
+                  <th>Channel</th>
+                  <th class="text-right">Revenue Contribution</th>
+                  <th class="text-right">Ad Spend</th>
+                  <th class="text-right">ROAS</th>
+                  <th class="text-right">CPA</th>
+                  <th class="text-right">Share</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="flex flex-center gap-8"><span class="color-swatch" style="background:#5C6AC4;"></span> Google Ads</span></td>
+                  <td class="text-right">$82,350</td>
+                  <td class="text-right">$19,607</td>
+                  <td class="text-right fw-600 color-green">4.2x</td>
+                  <td class="text-right">$12.40</td>
+                  <td class="text-right">28.9%</td>
+                </tr>
+                <tr>
+                  <td><span class="flex flex-center gap-8"><span class="color-swatch" style="background:#007ACE;"></span> Meta Ads</span></td>
+                  <td class="text-right">$65,280</td>
+                  <td class="text-right">$18,133</td>
+                  <td class="text-right fw-600 color-green">3.6x</td>
+                  <td class="text-right">$15.80</td>
+                  <td class="text-right">22.9%</td>
+                </tr>
+                <tr>
+                  <td><span class="flex flex-center gap-8"><span class="color-swatch" style="background:#00A0AC;"></span> LINE Ads</span></td>
+                  <td class="text-right">$24,130</td>
+                  <td class="text-right">$4,618</td>
+                  <td class="text-right fw-600">2.8x</td>
+                  <td class="text-right">$22.10</td>
+                  <td class="text-right">8.5%</td>
+                </tr>
+                <tr>
+                  <td><span class="flex flex-center gap-8"><span class="color-swatch" style="background:#108043;"></span> TikTok Ads</span></td>
+                  <td class="text-right">$18,740</td>
+                  <td class="text-right">$2,842</td>
+                  <td class="text-right fw-600 color-green">5.1x</td>
+                  <td class="text-right">$8.60</td>
+                  <td class="text-right">6.6%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
